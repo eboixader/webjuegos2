@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ahorcado · Juegos Educativos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    :root{--bg:#09090f;--surface:rgba(255,255,255,.05);--border:rgba(255,255,255,.09);--text:#f0f0ff;--muted:rgba(240,240,255,.5);--blue:#6366f1;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--gold:#f6d365;--r:14px;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse at 60% 10%,rgba(99,102,241,.18) 0%,transparent 55%);}
+    .screen{display:none;min-height:100vh;flex-direction:column;}.screen.active{display:flex;}
+    .topbar{background:rgba(0,0,0,.45);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.8rem 1.5rem;display:flex;align-items:center;gap:.8rem;position:sticky;top:0;z-index:10;}
+    .topbar-icon{font-size:1.4rem;}.topbar-title{font-weight:900;font-size:1.05rem;}
+    .back-btn{margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:.3rem .9rem;cursor:pointer;font-family:inherit;font-size:.85rem;text-decoration:none;display:inline-block;transition:all .2s;}
+    .back-btn:hover{color:var(--text);}
+
+    /* SETUP */
+    .setup-body{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:2rem;}
+    .setup-inner{width:100%;max-width:680px;}
+    .setup-hero{text-align:center;margin-bottom:2rem;}
+    .setup-hero h2{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .setup-hero p{color:var(--muted);margin-top:.4rem;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;margin-bottom:1.2rem;backdrop-filter:blur(10px);}
+    .card-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;}
+    .inp{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text);font-family:inherit;font-size:.95rem;margin-top:.4rem;transition:border .2s;}
+    .inp:focus{outline:none;border-color:var(--blue);}
+    .inp-wrap{position:relative;}.inp-wrap .inp{padding-right:2.5rem;}
+    .toggle-pw{position:absolute;right:.8rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+    .team-row{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;}
+    .team-row span{color:var(--muted);font-size:.9rem;flex:1;}
+    .stepper{display:flex;align-items:center;gap:.6rem;}
+    .step-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .step-btn:hover{background:var(--blue);border-color:var(--blue);}
+    .step-val{font-size:1.2rem;font-weight:900;min-width:1.5rem;text-align:center;}
+    .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+    .team-field{position:relative;}
+    .team-dot{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;}
+    .team-field .inp{padding-left:2.2rem;}
+    .drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:2rem;text-align:center;cursor:pointer;transition:all .3s;}
+    .drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:rgba(99,102,241,.06);}
+    .dz-icon{font-size:2.5rem;margin-bottom:.5rem;}.dz-text{color:var(--muted);font-size:.9rem;}.dz-fmt{font-size:.78rem;color:var(--muted);margin-top:.3rem;opacity:.7;}
+    #fileInput{display:none;}
+    .file-ok{margin-top:.8rem;padding:.7rem 1rem;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;display:none;align-items:center;gap:.6rem;font-size:.9rem;}
+    .file-ok.visible{display:flex;}.file-ok-name{font-weight:700;}.file-ok-size{color:var(--muted);font-size:.82rem;}
+    .btn-gen{width:100%;padding:1rem;background:linear-gradient(135deg,var(--blue),#7c3aed);border:none;border-radius:var(--r);color:#fff;font-family:inherit;font-size:1.05rem;font-weight:800;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+    .btn-gen:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(99,102,241,.3);}
+    .btn-gen:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+
+    /* LOADING */
+    .loading-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;}
+    .spinner{width:72px;height:72px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:2rem;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-title{font-size:1.3rem;font-weight:800;}.loading-sub{color:var(--muted);margin-top:.4rem;}
+
+    /* TEAM SELECT */
+    .ts-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .ts-title{font-size:1.6rem;font-weight:900;color:#818cf8;}
+    .ts-sub{color:var(--muted);}
+    .ts-grid{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;}
+    .ts-btn{padding:.7rem 1.4rem;border-radius:50px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;}
+    .ts-btn:hover{border-color:var(--blue);color:#818cf8;}
+
+    /* GAME */
+    .game-body{flex:1;display:grid;grid-template-columns:1fr 280px;gap:0;}
+    @media(max-width:700px){.game-body{grid-template-columns:1fr;}.side-panel{display:none;}}
+    .game-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;gap:1.2rem;}
+
+    /* Word info */
+    .word-num{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+    .word-hint{font-size:1rem;color:var(--muted);font-style:italic;text-align:center;max-width:420px;}
+
+    /* Hangman SVG */
+    .hangman-wrap{width:220px;height:220px;flex-shrink:0;}
+    #hangmanSvg{width:100%;height:100%;}
+
+    /* Word blanks */
+    .blanks{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;max-width:500px;}
+    .blank{
+      width:38px;height:46px;border-bottom:3px solid rgba(255,255,255,.4);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.5rem;font-weight:900;
+      transition:all .3s;
+    }
+    .blank.space{border:none;width:20px;}
+    .blank.filled{color:var(--green);border-color:var(--green);}
+    .blank.wrong-reveal{color:var(--red);border-color:var(--red);}
+
+    /* Keyboard */
+    .keyboard{display:flex;flex-direction:column;gap:.4rem;align-items:center;}
+    .kb-row{display:flex;gap:.3rem;}
+    .kb-btn{
+      width:36px;height:36px;border-radius:8px;
+      border:1px solid var(--border);background:var(--surface);
+      color:var(--text);font-family:inherit;font-size:.85rem;font-weight:700;
+      cursor:pointer;transition:all .15s;
+    }
+    .kb-btn:hover:not(:disabled){background:rgba(99,102,241,.3);border-color:var(--blue);}
+    .kb-btn.correct{background:rgba(34,197,94,.2);border-color:var(--green);color:var(--green);}
+    .kb-btn.wrong{background:rgba(239,68,68,.15);border-color:var(--red);color:var(--red);opacity:.5;}
+    .kb-btn:disabled{cursor:default;}
+
+    /* Side panel */
+    .side-panel{background:rgba(0,0,0,.2);border-left:1px solid var(--border);padding:1.4rem;display:flex;flex-direction:column;gap:1rem;}
+    .sp-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+    .sb-item{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--surface);border-radius:10px;}
+    .sb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .sb-name{font-weight:700;font-size:.88rem;flex:1;}
+    .sb-pts{font-size:1.1rem;font-weight:900;color:var(--gold);}
+    .active-badge{font-size:.65rem;background:var(--blue);padding:.1rem .4rem;border-radius:10px;color:#fff;font-weight:700;}
+    .words-done{margin-top:.5rem;}
+    .wd-item{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:6px;font-size:.82rem;}
+    .wd-item.ok{color:var(--green);}.wd-item.fail{color:var(--red);}
+
+    /* Result overlay */
+    .result-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;z-index:50;gap:1rem;}
+    .result-overlay.visible{display:flex;}
+    .res-icon{font-size:5rem;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes popIn{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+    .res-msg{font-size:2rem;font-weight:900;}
+    .res-word{font-size:1.4rem;color:var(--gold);font-weight:700;}
+    .res-sub{color:var(--muted);}
+    .res-btns{display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;margin-top:.5rem;}
+    .rbtn{padding:.75rem 1.6rem;border-radius:50px;border:none;font-family:inherit;font-size:.95rem;font-weight:800;cursor:pointer;transition:all .2s;}
+    .rbtn-blue{background:linear-gradient(135deg,var(--blue),#7c3aed);color:#fff;}
+    .rbtn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text);}
+    .rbtn:hover{transform:translateY(-2px);}
+
+    /* FINAL */
+    .final-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .final-title{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;background:linear-gradient(135deg,#818cf8,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .podium{display:flex;align-items:flex-end;gap:.5rem;}
+    .pod{display:flex;flex-direction:column;align-items:center;gap:.4rem;}
+    .pod-name{font-weight:800;font-size:.88rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pod-pts{font-size:.78rem;color:var(--muted);}
+    .pod-block{width:80px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+    .pod-1 .pod-block{height:110px;background:linear-gradient(180deg,#f6d365,#fda085);}
+    .pod-2 .pod-block{height:82px;background:linear-gradient(180deg,#a8b2d8,#8892b0);}
+    .pod-3 .pod-block{height:64px;background:linear-gradient(180deg,#cd9b4c,#a67c52);}
+    .all-scores-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;min-width:300px;}
+    .asr{display:flex;align-items:center;gap:.7rem;padding:.45rem .5rem;border-radius:8px;}
+    .asr-rank{font-weight:900;color:var(--muted);width:1.4rem;text-align:center;}
+    .asr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .asr-name{flex:1;font-weight:700;}
+    .asr-pts{font-weight:900;color:var(--gold);}
+    .btn-again{padding:.85rem 2.2rem;background:linear-gradient(135deg,var(--blue),#7c3aed);border:none;border-radius:50px;color:#fff;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;transition:all .3s;}
+    .btn-again:hover{transform:translateY(-3px);}
+  </style>
+</head>
+<body>
+
+<div id="resultOverlay" class="result-overlay">
+  <div class="res-icon" id="resIcon">🎉</div>
+  <div class="res-msg" id="resMsg">¡Correcto!</div>
+  <div class="res-word" id="resWord"></div>
+  <div class="res-sub" id="resSub"></div>
+  <div class="res-btns" id="resBtns"></div>
+</div>
+
+<!-- SETUP -->
+<div id="s-setup" class="screen active">
+  <div class="topbar">
+    <span class="topbar-icon">🪢</span>
+    <span class="topbar-title">Ahorcado</span>
+    <a href="index.html" class="back-btn">← Inicio</a>
+  </div>
+  <div class="setup-body">
+    <div class="setup-inner">
+      <div class="setup-hero">
+        <h2>¡Configura el ahorcado!</h2>
+        <p>La IA extraerá palabras clave de tu documento.</p>
+      </div>
+                  <div class="card">
+        <div class="card-label">🔑 API Key de Gemini</div>
+        <div class="inp-wrap">
+          <input class="inp" id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
+          <button class="toggle-pw" onclick="togglePw()" title="Mostrar/ocultar">👁</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted);margin-top:.5rem;">Obtén tu key gratis en <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">aistudio.google.com</a></p>
+        <div id="keySaved" style="display:none;align-items:center;gap:.5rem;font-size:.78rem;color:#22c55e;margin-top:.5rem;">✅ API key guardada en este navegador · <button onclick="forgetKey()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;text-decoration:underline;">Olvidar</button></div>
+      </div>
+      <div class="card">
+        <div class="card-label">👥 Equipos</div>
+        <div class="team-row"><span>Número de equipos:</span>
+          <div class="stepper">
+            <button class="step-btn" onclick="changeTeams(-1)">−</button>
+            <span class="step-val" id="teamCount">3</span>
+            <button class="step-btn" onclick="changeTeams(1)">+</button>
+          </div>
+        </div>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">📄 Archivo con el tema</div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">📂</div>
+          <div class="dz-text">Haz clic o arrastra tu archivo aquí</div>
+          <div class="dz-fmt">Formatos admitidos: .txt · .docx · .pdf</div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.docx,.pdf">
+        <div class="file-ok" id="fileOk">
+          <span>✅</span><span class="file-ok-name" id="fileName"></span><span class="file-ok-size" id="fileSize"></span>
+        </div>
+      </div>
+      <button class="btn-gen" id="btnGen" onclick="startGame()" disabled>✨ Generar palabras</button>
+      <div id="errMsg" style="color:#ef4444;font-size:.88rem;text-align:center;margin-top:.8rem;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen">
+  <div class="topbar"><span class="topbar-icon">🪢</span><span class="topbar-title">Ahorcado</span></div>
+  <div class="loading-body">
+    <div class="spinner"></div>
+    <div class="loading-title">Extrayendo palabras…</div>
+    <div class="loading-sub">La IA está buscando vocabulario clave</div>
+  </div>
+</div>
+
+<!-- TEAM SELECT -->
+<div id="s-teamselect" class="screen">
+  <div class="topbar"><span class="topbar-icon">🪢</span><span class="topbar-title">Ahorcado</span></div>
+  <div class="ts-body">
+    <div class="ts-title">🪢 ¿Qué equipo juega ahora?</div>
+    <p class="ts-sub" id="tsInfo">Quedan <span id="wordsLeft">0</span> palabras</p>
+    <div class="ts-grid" id="tsGrid"></div>
+    <button style="margin-top:1rem;padding:.6rem 1.4rem;border-radius:50px;border:1px solid var(--border);background:none;color:var(--muted);font-family:inherit;cursor:pointer;" onclick="showFinal()">Ver resultados →</button>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen">
+  <div class="topbar">
+    <span class="topbar-icon">🪢</span>
+    <span class="topbar-title" id="activeTeamTitle">Equipo 1</span>
+    <a href="#" class="back-btn" onclick="skipWord()">Saltar →</a>
+  </div>
+  <div class="game-body">
+    <div class="game-main">
+      <div class="word-num" id="wordNum">PALABRA 1 DE 12</div>
+      <div class="word-hint" id="wordHint">…</div>
+      <div class="hangman-wrap"><svg id="hangmanSvg" viewBox="0 0 250 250" xmlns="http://www.w3.org/2000/svg"></svg></div>
+      <div class="blanks" id="blanks"></div>
+      <div class="keyboard" id="keyboard"></div>
+    </div>
+    <div class="side-panel">
+      <div class="sp-title">Marcador</div>
+      <div id="sbGame"></div>
+      <div class="words-done">
+        <div class="sp-title" style="margin-bottom:.5rem">Palabras</div>
+        <div id="wordsDone"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div id="s-final" class="screen">
+  <div class="topbar"><span class="topbar-icon">🪢</span><span class="topbar-title">Ahorcado</span><a href="index.html" class="back-btn">← Inicio</a></div>
+  <div class="final-body">
+    <div class="final-title">🏆 ¡Juego terminado!</div>
+    <div class="podium" id="podium"></div>
+    <div class="all-scores-box" id="allScores"></div>
+    <button class="btn-again" onclick="resetGame()">🔄 Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const TEAM_COLORS=['#6366f1','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4'];
+const KB_ROWS=[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L','Ñ'],['Z','X','C','V','B','N','M']];
+const MAX_WRONG=6;
+
+const HANGMAN_PARTS=[
+  // Gallows always drawn separately; parts are body parts
+  (s)=>{const c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx','160');c.setAttribute('cy','72');c.setAttribute('r','18');c.setAttribute('fill','none');c.setAttribute('stroke','#f0f0ff');c.setAttribute('stroke-width','3');s.appendChild(c);},
+  (s)=>{addLine(s,160,90,160,150);},
+  (s)=>{addLine(s,160,108,130,135);},
+  (s)=>{addLine(s,160,108,190,135);},
+  (s)=>{addLine(s,160,150,130,195);},
+  (s)=>{addLine(s,160,150,190,195);}
+];
+
+function addLine(s,x1,y1,x2,y2){const l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);l.setAttribute('stroke','#f0f0ff');l.setAttribute('stroke-width','3');l.setAttribute('stroke-linecap','round');s.appendChild(l);}
+
+function drawGallows(svg){
+  svg.innerHTML='';
+  // Base
+  addLine(svg,30,230,120,230);
+  // Pole
+  addLine(svg,60,230,60,30);
+  // Beam
+  addLine(svg,60,30,165,30);
+  // Rope
+  addLine(svg,165,30,165,54);
+}
+
+let numTeams=3,teams=[],scores=[],wordResults=[];
+let words=[],curWordIdx=0,activeTeam=0;
+let guessedLetters=[],wrongCount=0;
+let extractedText='';
+
+renderTeamGrid();
+function renderTeamGrid(){
+  const g=document.getElementById('teamGrid');g.innerHTML='';
+  const def=['Equipo 1','Equipo 2','Equipo 3','Equipo 4','Equipo 5','Equipo 6'];
+  for(let i=0;i<numTeams;i++){const prev=teams[i]||def[i];g.innerHTML+=`<div class="team-field"><div class="team-dot" style="background:${TEAM_COLORS[i]}"></div><input class="inp" type="text" placeholder="${def[i]}" value="${prev}" id="tn-${i}" oninput="checkReady()"></div>`;}
+  checkReady();
+}
+function changeTeams(d){numTeams=Math.max(1,Math.min(6,numTeams+d));document.getElementById('teamCount').textContent=numTeams;renderTeamGrid();}
+function togglePw(){const i=document.getElementById('apiKey');i.type=i.type==='password'?'text':'password';}
+function checkReady(){document.getElementById('btnGen').disabled=!(document.getElementById('apiKey').value.trim().length>5&&extractedText.length>50);}
+document.getElementById('apiKey').addEventListener('input',checkReady);
+(function(){const k=localStorage.getItem('gemini_api_key');if(k){document.getElementById('apiKey').value=k;document.getElementById('keySaved').style.display='flex';checkReady();}})();
+function forgetKey(){localStorage.removeItem('gemini_api_key');document.getElementById('apiKey').value='';document.getElementById('keySaved').style.display='none';checkReady();}
+
+const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+fi.addEventListener('change',()=>handleFile(fi.files[0]));
+
+async function handleFile(file){
+  if(!file)return;
+  try{
+    let text='';const ext=file.name.split('.').pop().toLowerCase();
+    if(ext==='txt'){text=await file.text();}
+    else if(ext==='docx'){const buf=await file.arrayBuffer();const res=await mammoth.extractRawText({arrayBuffer:buf});text=res.value;}
+    else if(ext==='pdf'){const buf=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:buf}).promise;for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p);const c=await page.getTextContent();text+=c.items.map(i=>i.str).join(' ')+'\n';}}
+    else{alert('Usa .txt, .docx o .pdf');return;}
+    extractedText=text.trim();
+    document.getElementById('fileOk').classList.add('visible');
+    document.getElementById('fileName').textContent=file.name;
+    document.getElementById('fileSize').textContent=Math.round(file.size/1024)+' KB';
+    checkReady();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function startGame(){
+  teams=[];scores=[];wordResults=[];
+  for(let i=0;i<numTeams;i++){teams.push(document.getElementById(`tn-${i}`).value.trim()||`Equipo ${i+1}`);scores.push(0);}
+  show('s-loading');
+
+  const apiKey=document.getElementById('apiKey').value.trim();
+  localStorage.setItem('gemini_api_key',apiKey);
+  const prompt=`Eres un creador de juegos educativos en español. A partir del siguiente texto, extrae exactamente 12 palabras clave o conceptos importantes para un juego de Ahorcado.
+Cada palabra debe ser una SOLA PALABRA en MAYÚSCULAS y estar acompañada de una pista/definición breve.
+Devuelve SOLO un array JSON sin texto adicional:
+[{"palabra":"ECOSISTEMA","pista":"Conjunto formado por seres vivos y el entorno en el que viven"}]
+
+TEXTO:
+${extractedText.slice(0,10000)}`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.6}})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    words=JSON.parse(data.candidates[0].content.parts[0].text);
+    curWordIdx=0;
+    goSelectTeam();
+  }catch(e){
+    show('s-setup');
+    const err=document.getElementById('errMsg');err.textContent='❌ Error: '+e.message;err.style.display='block';
+    setTimeout(()=>err.style.display='none',6000);
+  }
+}
+
+function goSelectTeam(){
+  const rem=words.length-curWordIdx;
+  document.getElementById('wordsLeft').textContent=rem;
+  const grid=document.getElementById('tsGrid');
+  grid.innerHTML=teams.map((t,i)=>`<button class="ts-btn" onclick="selectTeam(${i})"><span style="color:${TEAM_COLORS[i]}">●</span> ${t} — ${scores[i]} pts</button>`).join('');
+  show('s-teamselect');
+}
+
+function selectTeam(i){
+  activeTeam=i;
+  startWord();
+}
+
+function startWord(){
+  if(curWordIdx>=words.length){showFinal();return;}
+  const w=words[curWordIdx];
+  guessedLetters=[];wrongCount=0;
+  document.getElementById('activeTeamTitle').textContent=teams[activeTeam]+' — '+w.palabra;
+  document.getElementById('wordNum').textContent=`PALABRA ${curWordIdx+1} DE ${words.length}`;
+  document.getElementById('wordHint').textContent='💡 '+w.pista;
+  drawGallows(document.getElementById('hangmanSvg'));
+  renderBlanks();
+  renderKeyboard();
+  renderSidebar();
+  show('s-game');
+}
+
+function renderBlanks(){
+  const word=words[curWordIdx].palabra;
+  const el=document.getElementById('blanks');
+  el.innerHTML=word.split('').map(l=>{
+    if(l===' ')return '<div class="blank space"></div>';
+    const revealed=guessedLetters.includes(l);
+    return `<div class="blank ${revealed?'filled':''}">${revealed?l:''}</div>`;
+  }).join('');
+}
+
+function renderKeyboard(){
+  const kb=document.getElementById('keyboard');
+  kb.innerHTML=KB_ROWS.map(row=>`<div class="kb-row">${row.map(l=>{
+    const state=!guessedLetters.includes(l)?'':words[curWordIdx].palabra.includes(l)?'correct':'wrong';
+    return `<button class="kb-btn ${state}" id="kb-${l}" onclick="guessLetter('${l}')" ${guessedLetters.includes(l)?'disabled':''}>${l}</button>`;
+  }).join('')}</div>`).join('');
+}
+
+function guessLetter(l){
+  if(guessedLetters.includes(l))return;
+  guessedLetters.push(l);
+  const word=words[curWordIdx].palabra;
+  if(!word.includes(l)){
+    wrongCount++;
+    // Draw next part
+    const svg=document.getElementById('hangmanSvg');
+    HANGMAN_PARTS[wrongCount-1](svg);
+    if(wrongCount>=MAX_WRONG){
+      // Game over for this word
+      showWordResult(false);return;
+    }
+  }
+  renderBlanks();
+  renderKeyboard();
+  // Check if word complete
+  const allRevealed=word.split('').every(c=>c===' '||guessedLetters.includes(c));
+  if(allRevealed) showWordResult(true);
+}
+
+function showWordResult(won){
+  const w=words[curWordIdx];
+  wordResults.push({word:w.palabra,won,team:teams[activeTeam],teamIdx:activeTeam});
+  if(won){scores[activeTeam]+=3;}
+  const overlay=document.getElementById('resultOverlay');
+  document.getElementById('resIcon').textContent=won?'🎉':'💀';
+  document.getElementById('resMsg').textContent=won?'¡Correcto!':'¡Ahorcado!';
+  document.getElementById('resWord').textContent=w.palabra;
+  document.getElementById('resSub').textContent=w.pista;
+  curWordIdx++;
+  const rem=words.length-curWordIdx;
+  const btns=document.getElementById('resBtns');
+  if(rem>0){
+    btns.innerHTML=`<button class="rbtn rbtn-blue" onclick="closeResult(true)">Siguiente equipo</button><button class="rbtn rbtn-ghost" onclick="closeResult(false)">Mismo equipo</button>`;
+  }else{
+    btns.innerHTML=`<button class="rbtn rbtn-blue" onclick="closeResult(true)">Ver resultados</button>`;
+  }
+  overlay.classList.add('visible');
+}
+
+function closeResult(changeTeam){
+  document.getElementById('resultOverlay').classList.remove('visible');
+  if(curWordIdx>=words.length){showFinal();return;}
+  if(changeTeam){goSelectTeam();}else{startWord();}
+}
+
+function skipWord(){
+  wordResults.push({word:words[curWordIdx].palabra,won:false,team:teams[activeTeam],teamIdx:activeTeam});
+  curWordIdx++;
+  if(curWordIdx>=words.length){showFinal();}else{goSelectTeam();}
+}
+
+function renderSidebar(){
+  document.getElementById('sbGame').innerHTML=teams.map((t,i)=>`<div class="sb-item"><div class="sb-dot" style="background:${TEAM_COLORS[i]}"></div><span class="sb-name">${t} ${i===activeTeam?'<span class="active-badge">▶</span>':''}</span><span class="sb-pts">${scores[i]}</span></div>`).join('');
+  document.getElementById('wordsDone').innerHTML=wordResults.map(r=>`<div class="wd-item ${r.won?'ok':'fail'}">${r.won?'✓':'✗'} ${r.word}</div>`).join('');
+}
+
+function showFinal(){
+  const ranked=teams.map((t,i)=>({name:t,pts:scores[i],color:TEAM_COLORS[i]})).sort((a,b)=>b.pts-a.pts);
+  const po=[1,0,2],pc=['pod-2','pod-1','pod-3'],pe=['🥇','🥈','🥉'];
+  document.getElementById('podium').innerHTML=po.map((r,vi)=>{const t=ranked[r];if(!t)return'';return`<div class="pod ${pc[vi]}"><div class="pod-name">${t.name}</div><div class="pod-pts">${t.pts} pts</div><div class="pod-block">${pe[r]}</div></div>`;}).join('');
+  document.getElementById('allScores').innerHTML=ranked.map((t,i)=>`<div class="asr"><span class="asr-rank">${i+1}</span><div class="asr-dot" style="background:${t.color}"></div><span class="asr-name">${t.name}</span><span class="asr-pts">${t.pts} pts</span></div>`).join('');
+  show('s-final');
+}
+
+function resetGame(){scores=teams.map(()=>0);curWordIdx=0;wordResults=[];show('s-setup');}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+</script>
+</body>
+</html>

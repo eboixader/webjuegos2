@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>El Intruso · Juegos Educativos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    :root{--bg:#080f0a;--surface:rgba(255,255,255,.05);--border:rgba(255,255,255,.09);--text:#f0f0ff;--muted:rgba(240,240,255,.5);--orange:#f59e0b;--red:#ef4444;--green:#22c55e;--blue:#3b82f6;--gold:#f6d365;--r:14px;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse at 50% 10%,rgba(245,158,11,.15) 0%,transparent 55%);}
+    .screen{display:none;min-height:100vh;flex-direction:column;}.screen.active{display:flex;}
+    .topbar{background:rgba(0,0,0,.45);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.8rem 1.5rem;display:flex;align-items:center;gap:.8rem;position:sticky;top:0;z-index:10;}
+    .topbar-icon{font-size:1.4rem;}.topbar-title{font-weight:900;font-size:1.05rem;}
+    .back-btn{margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:.3rem .9rem;cursor:pointer;font-family:inherit;font-size:.85rem;text-decoration:none;display:inline-block;transition:all .2s;}
+    .back-btn:hover{color:var(--text);}
+    /* SETUP */
+    .setup-body{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:2rem;}
+    .setup-inner{width:100%;max-width:680px;}
+    .setup-hero{text-align:center;margin-bottom:2rem;}
+    .setup-hero h2{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--orange),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .setup-hero p{color:var(--muted);margin-top:.4rem;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;margin-bottom:1.2rem;backdrop-filter:blur(10px);}
+    .card-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;}
+    .inp{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text);font-family:inherit;font-size:.95rem;margin-top:.4rem;transition:border .2s;}
+    .inp:focus{outline:none;border-color:var(--orange);}
+    .inp-wrap{position:relative;}.inp-wrap .inp{padding-right:2.5rem;}
+    .toggle-pw{position:absolute;right:.8rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+    .team-row{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;}
+    .team-row span{color:var(--muted);font-size:.9rem;flex:1;}
+    .stepper{display:flex;align-items:center;gap:.6rem;}
+    .step-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .step-btn:hover{background:var(--orange);border-color:var(--orange);}
+    .step-val{font-size:1.2rem;font-weight:900;min-width:1.5rem;text-align:center;}
+    .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+    .team-field{position:relative;}
+    .team-dot{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;}
+    .team-field .inp{padding-left:2.2rem;}
+    .drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:2rem;text-align:center;cursor:pointer;transition:all .3s;}
+    .drop-zone:hover,.drop-zone.dragover{border-color:var(--orange);background:rgba(245,158,11,.06);}
+    .dz-icon{font-size:2.5rem;margin-bottom:.5rem;}.dz-text{color:var(--muted);font-size:.9rem;}.dz-fmt{font-size:.78rem;color:var(--muted);margin-top:.3rem;opacity:.7;}
+    #fileInput{display:none;}
+    .file-ok{margin-top:.8rem;padding:.7rem 1rem;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;display:none;align-items:center;gap:.6rem;font-size:.9rem;}
+    .file-ok.visible{display:flex;}.file-ok-name{font-weight:700;}.file-ok-size{color:var(--muted);font-size:.82rem;}
+    .btn-gen{width:100%;padding:1rem;background:linear-gradient(135deg,var(--orange),var(--red));border:none;border-radius:var(--r);color:#fff;font-family:inherit;font-size:1.05rem;font-weight:800;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+    .btn-gen:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(245,158,11,.3);}
+    .btn-gen:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+    /* LOADING */
+    .loading-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;}
+    .spinner{width:72px;height:72px;border:4px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:2rem;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-title{font-size:1.3rem;font-weight:800;}.loading-sub{color:var(--muted);margin-top:.4rem;}
+    /* GAME */
+    .game-body{flex:1;display:grid;grid-template-columns:1fr 230px;gap:0;}
+    @media(max-width:700px){.game-body{grid-template-columns:1fr;}.side-panel{display:none;}}
+    .game-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.5rem;text-align:center;}
+    .round-label{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);}
+    .group-title{font-size:1rem;color:var(--muted);font-style:italic;}
+    .items-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;max-width:520px;width:100%;}
+    .item-btn{
+      padding:1rem 1.2rem;border-radius:14px;
+      border:2px solid var(--border);background:rgba(245,158,11,.06);
+      color:var(--text);font-family:inherit;font-size:1rem;font-weight:700;
+      cursor:pointer;transition:all .2s;line-height:1.4;
+    }
+    .item-btn:hover:not(:disabled){background:rgba(245,158,11,.15);border-color:var(--orange);transform:translateY(-2px);}
+    .item-btn.chosen-correct{background:rgba(239,68,68,.2);border-color:var(--red);color:var(--red);animation:popIn .4s ease;}
+    .item-btn.chosen-wrong{background:rgba(34,197,94,.1);border-color:rgba(34,197,94,.3);color:var(--muted);}
+    .item-btn.is-intruso{background:rgba(239,68,68,.2);border-color:var(--red);color:var(--red);}
+    @keyframes popIn{from{transform:scale(.9)}to{transform:scale(1)}}
+
+    /* Reveal panel */
+    .reveal-panel{max-width:520px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:1.2rem 1.5rem;display:none;}
+    .reveal-panel.visible{display:block;}
+    .reveal-result{font-size:1.6rem;font-weight:900;margin-bottom:.5rem;}
+    .reveal-result.correct{color:var(--green);}
+    .reveal-result.wrong{color:var(--red);}
+    .reveal-razon{color:var(--muted);font-size:.92rem;line-height:1.5;margin-bottom:.8rem;}
+
+    /* Scoring row */
+    .scoring-row{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;}
+    .t-check{display:flex;align-items:center;gap:.5rem;padding:.45rem .8rem;border-radius:10px;border:1px solid var(--border);cursor:pointer;transition:all .2s;user-select:none;}
+    .t-check.on{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);}
+    .t-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .t-name{font-weight:700;font-size:.85rem;}
+    .t-chk{margin-left:.3rem;opacity:0;transition:opacity .2s;}
+    .t-check.on .t-chk{opacity:1;}
+
+    .btn-next{margin-top:.8rem;padding:.8rem 2rem;background:linear-gradient(135deg,var(--orange),var(--red));border:none;border-radius:50px;color:#fff;font-family:inherit;font-size:.95rem;font-weight:800;cursor:pointer;transition:all .3s;}
+    .btn-next:hover{transform:translateY(-2px);}
+
+    /* Side */
+    .side-panel{background:rgba(0,0,0,.2);border-left:1px solid var(--border);padding:1.4rem;display:flex;flex-direction:column;gap:.5rem;}
+    .sp-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.3rem;}
+    .sb-item{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;background:var(--surface);border-radius:10px;}
+    .sb-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .sb-name{font-weight:700;font-size:.88rem;flex:1;}
+    .sb-pts{font-size:1.1rem;font-weight:900;color:var(--gold);}
+
+    /* FINAL */
+    .final-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .final-title{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;background:linear-gradient(135deg,var(--orange),var(--red));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .podium{display:flex;align-items:flex-end;gap:.5rem;}
+    .pod{display:flex;flex-direction:column;align-items:center;gap:.4rem;}
+    .pod-name{font-weight:800;font-size:.88rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pod-pts{font-size:.78rem;color:var(--muted);}
+    .pod-block{width:80px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+    .pod-1 .pod-block{height:110px;background:linear-gradient(180deg,#f6d365,#fda085);}
+    .pod-2 .pod-block{height:82px;background:linear-gradient(180deg,#a8b2d8,#8892b0);}
+    .pod-3 .pod-block{height:64px;background:linear-gradient(180deg,#cd9b4c,#a67c52);}
+    .all-scores-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;min-width:300px;}
+    .asr{display:flex;align-items:center;gap:.7rem;padding:.45rem .5rem;border-radius:8px;}
+    .asr-rank{font-weight:900;color:var(--muted);width:1.4rem;text-align:center;}
+    .asr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .asr-name{flex:1;font-weight:700;}
+    .asr-pts{font-weight:900;color:var(--gold);}
+    .btn-again{padding:.85rem 2.2rem;background:linear-gradient(135deg,var(--orange),var(--red));border:none;border-radius:50px;color:#fff;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;transition:all .3s;}
+    .btn-again:hover{transform:translateY(-3px);}
+  </style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="s-setup" class="screen active">
+  <div class="topbar">
+    <span class="topbar-icon">🕵️</span>
+    <span class="topbar-title">El Intruso</span>
+    <a href="index.html" class="back-btn">← Inicio</a>
+  </div>
+  <div class="setup-body">
+    <div class="setup-inner">
+      <div class="setup-hero">
+        <h2>¡Encuentra al intruso!</h2>
+        <p>La IA creará grupos donde uno no encaja.</p>
+      </div>
+                  <div class="card">
+        <div class="card-label">🔑 API Key de Gemini</div>
+        <div class="inp-wrap">
+          <input class="inp" id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
+          <button class="toggle-pw" onclick="togglePw()" title="Mostrar/ocultar">👁</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted);margin-top:.5rem;">Obtén tu key gratis en <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">aistudio.google.com</a></p>
+        <div id="keySaved" style="display:none;align-items:center;gap:.5rem;font-size:.78rem;color:#22c55e;margin-top:.5rem;">✅ API key guardada en este navegador · <button onclick="forgetKey()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;text-decoration:underline;">Olvidar</button></div>
+      </div>
+      <div class="card">
+        <div class="card-label">👥 Equipos</div>
+        <div class="team-row"><span>Número de equipos:</span>
+          <div class="stepper">
+            <button class="step-btn" onclick="changeTeams(-1)">−</button>
+            <span class="step-val" id="teamCount">3</span>
+            <button class="step-btn" onclick="changeTeams(1)">+</button>
+          </div>
+        </div>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">📄 Archivo con el tema</div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">📂</div>
+          <div class="dz-text">Haz clic o arrastra tu archivo aquí</div>
+          <div class="dz-fmt">Formatos admitidos: .txt · .docx · .pdf</div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.docx,.pdf">
+        <div class="file-ok" id="fileOk">
+          <span>✅</span><span class="file-ok-name" id="fileName"></span><span class="file-ok-size" id="fileSize"></span>
+        </div>
+      </div>
+      <button class="btn-gen" id="btnGen" onclick="startGame()" disabled>✨ Generar grupos</button>
+      <div id="errMsg" style="color:#ef4444;font-size:.88rem;text-align:center;margin-top:.8rem;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div id="s-loading" class="screen">
+  <div class="topbar"><span class="topbar-icon">🕵️</span><span class="topbar-title">El Intruso</span></div>
+  <div class="loading-body">
+    <div class="spinner"></div>
+    <div class="loading-title">Creando los grupos…</div>
+    <div class="loading-sub">La IA está pensando en quién no encaja</div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div id="s-game" class="screen">
+  <div class="topbar">
+    <span class="topbar-icon">🕵️</span>
+    <span class="topbar-title">El Intruso</span>
+    <a href="index.html" class="back-btn">← Inicio</a>
+  </div>
+  <div class="game-body">
+    <div class="game-main">
+      <div class="round-label" id="roundLabel">RONDA 1 DE 10</div>
+      <div style="font-size:.95rem;color:var(--muted);">¿Cuál de estos elementos NO encaja con los demás?</div>
+      <div class="items-grid" id="itemsGrid"></div>
+      <div class="reveal-panel" id="revealPanel">
+        <div class="reveal-result" id="revealResult"></div>
+        <div class="reveal-razon" id="revealRazon"></div>
+        <p style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:.5rem;">¿Quién acertó?</p>
+        <div class="scoring-row" id="scoringRow"></div>
+        <button class="btn-next" id="btnNext" onclick="nextRound()">Siguiente ronda →</button>
+      </div>
+    </div>
+    <div class="side-panel">
+      <div class="sp-title">Marcador</div>
+      <div id="sbGame"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FINAL -->
+<div id="s-final" class="screen">
+  <div class="topbar"><span class="topbar-icon">🕵️</span><span class="topbar-title">El Intruso</span><a href="index.html" class="back-btn">← Inicio</a></div>
+  <div class="final-body">
+    <div class="final-title">🏆 ¡Juego terminado!</div>
+    <div class="podium" id="podium"></div>
+    <div class="all-scores-box" id="allScores"></div>
+    <button class="btn-again" onclick="resetGame()">🔄 Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const TEAM_COLORS=['#f59e0b','#22c55e','#3b82f6','#ef4444','#a855f7','#06b6d4'];
+
+let numTeams=3,teams=[],scores=[];
+let groups=[],curRound=0,revealed=false;
+let extractedText='';
+
+renderTeamGrid();
+function renderTeamGrid(){
+  const g=document.getElementById('teamGrid');g.innerHTML='';
+  const def=['Equipo 1','Equipo 2','Equipo 3','Equipo 4','Equipo 5','Equipo 6'];
+  for(let i=0;i<numTeams;i++){const prev=teams[i]||def[i];g.innerHTML+=`<div class="team-field"><div class="team-dot" style="background:${TEAM_COLORS[i]}"></div><input class="inp" type="text" placeholder="${def[i]}" value="${prev}" id="tn-${i}" oninput="checkReady()"></div>`;}
+  checkReady();
+}
+function changeTeams(d){numTeams=Math.max(2,Math.min(6,numTeams+d));document.getElementById('teamCount').textContent=numTeams;renderTeamGrid();}
+function togglePw(){const i=document.getElementById('apiKey');i.type=i.type==='password'?'text':'password';}
+function checkReady(){document.getElementById('btnGen').disabled=!(document.getElementById('apiKey').value.trim().length>5&&extractedText.length>50);}
+document.getElementById('apiKey').addEventListener('input',checkReady);
+(function(){const k=localStorage.getItem('gemini_api_key');if(k){document.getElementById('apiKey').value=k;document.getElementById('keySaved').style.display='flex';checkReady();}})();
+function forgetKey(){localStorage.removeItem('gemini_api_key');document.getElementById('apiKey').value='';document.getElementById('keySaved').style.display='none';checkReady();}
+
+const dz=document.getElementById('dropZone'),fi=document.getElementById('fileInput');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+fi.addEventListener('change',()=>handleFile(fi.files[0]));
+
+async function handleFile(file){
+  if(!file)return;
+  try{
+    let text='';const ext=file.name.split('.').pop().toLowerCase();
+    if(ext==='txt'){text=await file.text();}
+    else if(ext==='docx'){const buf=await file.arrayBuffer();const res=await mammoth.extractRawText({arrayBuffer:buf});text=res.value;}
+    else if(ext==='pdf'){const buf=await file.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:buf}).promise;for(let p=1;p<=pdf.numPages;p++){const page=await pdf.getPage(p);const c=await page.getTextContent();text+=c.items.map(i=>i.str).join(' ')+'\n';}}
+    else{alert('Usa .txt, .docx o .pdf');return;}
+    extractedText=text.trim();
+    document.getElementById('fileOk').classList.add('visible');
+    document.getElementById('fileName').textContent=file.name;
+    document.getElementById('fileSize').textContent=Math.round(file.size/1024)+' KB';
+    checkReady();
+  }catch(e){alert('Error: '+e.message);}
+}
+
+async function startGame(){
+  teams=[];scores=[];
+  for(let i=0;i<numTeams;i++){teams.push(document.getElementById(`tn-${i}`).value.trim()||`Equipo ${i+1}`);scores.push(0);}
+  show('s-loading');
+
+  const apiKey=document.getElementById('apiKey').value.trim();
+  localStorage.setItem('gemini_api_key',apiKey);
+  const prompt=`Eres un creador de juegos educativos en español. A partir del siguiente texto, genera exactamente 10 rondas para el juego "El Intruso".
+En cada ronda hay 4 elementos: 3 relacionados entre sí y 1 que no encaja (el intruso).
+El intruso debe ser plausible pero claramente incorrecto si se conoce el tema.
+Devuelve SOLO un array JSON sin texto adicional:
+[{
+  "elementos":["elemento1","elemento2","elemento3","intruso"],
+  "intruso":"intruso",
+  "razon":"Explicación breve de por qué ese elemento no encaja (máx 2 frases)"
+}]
+IMPORTANTE: el intruso debe aparecer en una posición aleatoria dentro del array elementos.
+
+TEXTO:
+${extractedText.slice(0,10000)}`;
+  try{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.7}})});
+    const data=await res.json();
+    if(data.error)throw new Error(data.error.message);
+    groups=JSON.parse(data.candidates[0].content.parts[0].text);
+    curRound=0;
+    showRound();
+    show('s-game');
+  }catch(e){
+    show('s-setup');
+    const err=document.getElementById('errMsg');err.textContent='❌ Error: '+e.message;err.style.display='block';
+    setTimeout(()=>err.style.display='none',6000);
+  }
+}
+
+function showRound(){
+  if(curRound>=groups.length){showFinal();return;}
+  revealed=false;
+  const g=groups[curRound];
+  document.getElementById('roundLabel').textContent=`RONDA ${curRound+1} DE ${groups.length}`;
+  document.getElementById('revealPanel').classList.remove('visible');
+  document.getElementById('itemsGrid').innerHTML=g.elementos.map((el,i)=>`
+    <button class="item-btn" id="item-${i}" onclick="pickItem(${i})">${el}</button>`).join('');
+  renderSidebar();
+}
+
+function pickItem(i){
+  if(revealed)return;
+  revealed=true;
+  const g=groups[curRound];
+  const chosen=g.elementos[i];
+  const isCorrect=chosen===g.intruso;
+
+  // Mark all items
+  g.elementos.forEach((el,idx)=>{
+    const btn=document.getElementById(`item-${idx}`);
+    btn.disabled=true;
+    if(el===g.intruso) btn.classList.add('is-intruso');
+    else if(idx===i&&!isCorrect) btn.classList.add('chosen-wrong');
+  });
+
+  const panel=document.getElementById('revealPanel');
+  const result=document.getElementById('revealResult');
+  result.textContent=isCorrect?'🎯 ¡Correcto! Es el intruso':'❌ ¡Incorrecto!';
+  result.className='reveal-result '+(isCorrect?'correct':'wrong');
+  document.getElementById('revealRazon').textContent=`🔍 ${g.razon}`;
+
+  // Scoring checkboxes
+  document.getElementById('scoringRow').innerHTML=teams.map((t,ti)=>`
+    <div class="t-check" id="tc-${ti}" onclick="toggleTeam(${ti})">
+      <div class="t-dot" style="background:${TEAM_COLORS[ti]}"></div>
+      <span class="t-name">${t}</span>
+      <span class="t-chk">✓</span>
+    </div>`).join('');
+
+  const isLast=curRound>=groups.length-1;
+  document.getElementById('btnNext').textContent=isLast?'🏆 Ver resultados':'Siguiente ronda →';
+  panel.classList.add('visible');
+}
+
+function toggleTeam(i){
+  const el=document.getElementById(`tc-${i}`);
+  const on=el.classList.toggle('on');
+  scores[i]+=on?1:-1;
+  renderSidebar();
+}
+
+function nextRound(){
+  curRound++;
+  if(curRound>=groups.length) showFinal();
+  else showRound();
+}
+
+function renderSidebar(){
+  document.getElementById('sbGame').innerHTML=teams.map((t,i)=>`<div class="sb-item"><div class="sb-dot" style="background:${TEAM_COLORS[i]}"></div><span class="sb-name">${t}</span><span class="sb-pts">${scores[i]}</span></div>`).join('');
+}
+
+function showFinal(){
+  const ranked=teams.map((t,i)=>({name:t,pts:scores[i],color:TEAM_COLORS[i]})).sort((a,b)=>b.pts-a.pts);
+  const po=[1,0,2],pc=['pod-2','pod-1','pod-3'],pe=['🥇','🥈','🥉'];
+  document.getElementById('podium').innerHTML=po.map((r,vi)=>{const t=ranked[r];if(!t)return'';return`<div class="pod ${pc[vi]}"><div class="pod-name">${t.name}</div><div class="pod-pts">${t.pts} pts</div><div class="pod-block">${pe[r]}</div></div>`;}).join('');
+  document.getElementById('allScores').innerHTML=ranked.map((t,i)=>`<div class="asr"><span class="asr-rank">${i+1}</span><div class="asr-dot" style="background:${t.color}"></div><span class="asr-name">${t.name}</span><span class="asr-pts">${t.pts} pts</span></div>`).join('');
+  show('s-final');
+}
+
+function resetGame(){scores=teams.map(()=>0);curRound=0;show('s-setup');}
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+</script>
+</body>
+</html>

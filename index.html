@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sala de Juegos Educativos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0b18;
+      --surface: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.08);
+      --text: #f0f0ff;
+      --muted: rgba(240,240,255,0.5);
+      --blue: #667eea;
+      --purple: #764ba2;
+      --gold: #f6d365;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Background blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.18;
+    }
+    .blob-1 { width:500px; height:500px; background:#667eea; top:-100px; left:-100px; animation: blobMove 12s ease-in-out infinite alternate; }
+    .blob-2 { width:400px; height:400px; background:#764ba2; bottom:-80px; right:-80px; animation: blobMove 10s ease-in-out infinite alternate-reverse; }
+    .blob-3 { width:300px; height:300px; background:#f6d365; top:40%; left:50%; animation: blobMove 14s ease-in-out infinite alternate; }
+    @keyframes blobMove { from { transform:translate(0,0) scale(1); } to { transform:translate(30px,20px) scale(1.1); } }
+
+    .wrap { max-width:1200px; margin:0 auto; padding:2rem; position:relative; z-index:1; }
+
+    /* Hero */
+    .hero { text-align:center; padding:4rem 0 2.5rem; }
+    .hero-icon { font-size:4rem; display:block; margin-bottom:1rem; animation:float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .hero h1 {
+      font-size: clamp(2rem, 6vw, 3.8rem);
+      font-weight: 900;
+      background: linear-gradient(135deg, #f6d365 0%, #fda085 40%, #667eea 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1.2;
+    }
+    .hero p { color:var(--muted); font-size:1.1rem; margin-top:0.7rem; }
+
+    /* Section */
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin: 2.5rem 0 1.2rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+    }
+    .section-header::after { content:''; flex:1; height:1px; background:var(--border); }
+    .section-badge {
+      background: linear-gradient(135deg, var(--gold), #fda085);
+      color: #000;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+    }
+
+    /* Grid */
+    .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr)); gap:1.2rem; }
+
+    /* Card */
+    .game-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      backdrop-filter: blur(12px);
+    }
+    .game-card::before {
+      content:'';
+      position:absolute;
+      inset:0;
+      background: linear-gradient(135deg, rgba(102,126,234,0.08), transparent);
+      opacity:0;
+      transition:opacity 0.3s;
+    }
+    .game-card:hover { transform:translateY(-6px); border-color:rgba(102,126,234,0.4); box-shadow:0 20px 50px rgba(102,126,234,0.15); }
+    .game-card:hover::before { opacity:1; }
+
+    .card-new {
+      position:absolute; top:1rem; right:1rem;
+      background:linear-gradient(135deg,var(--gold),#fda085);
+      color:#000; font-size:0.65rem; font-weight:800;
+      padding:0.2rem 0.6rem; border-radius:20px;
+      text-transform:uppercase; letter-spacing:0.05em;
+    }
+    .card-icon { font-size:2.2rem; }
+    .card-title { font-size:1.1rem; font-weight:800; margin-top:0.2rem; }
+    .card-desc { font-size:0.87rem; color:var(--muted); line-height:1.5; flex:1; }
+    .card-btn {
+      align-self:flex-start;
+      margin-top:0.8rem;
+      padding:0.45rem 1.1rem;
+      background:linear-gradient(135deg,var(--blue),var(--purple));
+      border-radius:50px;
+      font-size:0.82rem;
+      font-weight:700;
+      color:#fff;
+    }
+    .card-btn-gem {
+      background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      border: 1px solid var(--border);
+    }
+
+    /* How-to section */
+    .howto-section {
+      margin: 2rem 0 0.5rem;
+    }
+    .howto-header {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+    }
+    .howto-header::after { content:''; flex:1; height:1px; background:var(--border); }
+    .howto-header-badge {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 800;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+    }
+    .howto-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .howto-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(102,126,234,0.2);
+      border-radius: 16px;
+      padding: 1.4rem 1.4rem 1.2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .howto-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--blue), var(--purple));
+    }
+    .howto-step-num {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--blue), var(--purple));
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .howto-card-icon { font-size: 1.8rem; }
+    .howto-card-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .howto-card-desc {
+      font-size: 0.83rem;
+      color: var(--muted);
+      line-height: 1.55;
+      flex: 1;
+    }
+    .howto-card-desc a {
+      color: var(--blue);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .howto-card-desc a:hover { text-decoration: underline; }
+    .howto-card-tip {
+      font-size: 0.75rem;
+      color: rgba(240,240,255,0.3);
+      border-top: 1px solid var(--border);
+      padding-top: 0.6rem;
+      margin-top: 0.2rem;
+    }
+    .howto-footer {
+      margin-top: 0.8rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: rgba(240,240,255,0.25);
+    }
+
+    /* Footer */
+    footer { text-align:center; padding:3rem 0 2rem; color:var(--muted); font-size:0.85rem; }
+    footer a { color:var(--blue); text-decoration:none; }
+    footer a:hover { text-decoration:underline; }
+  </style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  <div class="wrap">
+    <div class="hero">
+      <span class="hero-icon">🎮</span>
+      <h1>Sala de Juegos Educativos</h1>
+      <p>¡Practica lo que quieras y juega en grupo!</p>
+    </div>
+
+    <div class="howto-section">
+      <div class="howto-header">
+        <span class="howto-header-badge">PARA PROFES</span>
+        Cómo activar la IA · Gratis · Sin tarjeta de crédito
+      </div>
+      <div class="howto-cards">
+        <div class="howto-card">
+          <div class="howto-card-icon">🌐</div>
+          <div class="howto-card-title">1 · Ve a Google AI Studio</div>
+          <div class="howto-card-desc">
+            Abre <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a> e inicia sesión con tu cuenta de Google. Es el portal oficial de Google para desarrolladores.
+          </div>
+          <div class="howto-card-tip">⏱ Solo necesitas una cuenta Google — es gratuito</div>
+        </div>
+        <div class="howto-card">
+          <div class="howto-card-icon">🔑</div>
+          <div class="howto-card-title">2 · Crea tu clave de API</div>
+          <div class="howto-card-desc">
+            Haz clic en el botón azul <strong>«Crear clave de API»</strong>. Google genera al instante una clave que empieza por <strong>AIza…</strong> Cópiala con el botón de copiar.
+          </div>
+          <div class="howto-card-tip">🔒 Tu clave es personal — no la compartas</div>
+        </div>
+        <div class="howto-card">
+          <div class="howto-card-icon">🎮</div>
+          <div class="howto-card-title">3 · Pégala en el juego</div>
+          <div class="howto-card-desc">
+            Abre cualquier juego, pega la clave en el campo <strong>«API Key de Gemini»</strong> y haz clic en <strong>«Generar preguntas»</strong>. El navegador la recordará para siempre.
+          </div>
+          <div class="howto-card-tip">✅ Solo hay que hacerlo una vez por navegador</div>
+        </div>
+        <div class="howto-card">
+          <div class="howto-card-icon">💡</div>
+          <div class="howto-card-title">¿Por qué una API Key?</div>
+          <div class="howto-card-desc">
+            La IA que genera las preguntas es <strong>Gemini de Google</strong>. Cada profe usa su propia cuota gratuita — actualmente más de 1.500 consultas al día — sin coste alguno.
+          </div>
+          <div class="howto-card-tip">♾ Sin límite de alumnos · Sin coste</div>
+        </div>
+      </div>
+      <div class="howto-footer">✨ Completamente gratuito · Sin tarjeta de crédito · Sin registro de pago</div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-badge">NUEVO</span>
+      Juegos mejorados · Sube txt, docx o pdf · IA integrada
+    </div>
+    <div class="grid">
+      <a href="verdadero-falso.html" class="game-card">
+        <span class="card-new">NUEVO</span>
+        <div class="card-icon">✅</div>
+        <div class="card-title">Verdadero o Falso</div>
+        <div class="card-desc">Lee la afirmación y decide si es correcta o no. ¡Demuestra cuánto sabes sobre el tema!</div>
+        <span class="card-btn">¡A Jugar!</span>
+      </a>
+      <a href="millonario.html" class="game-card">
+        <span class="card-new">NUEV

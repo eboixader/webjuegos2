@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pasapalabra · Juegos Educativos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    :root {
+      --bg:#07070f; --surface:rgba(255,255,255,0.05); --border:rgba(255,255,255,0.09);
+      --text:#f0f0ff; --muted:rgba(240,240,255,0.5);
+      --blue:#3b82f6; --blue-dim:rgba(59,130,246,.2); --blue-l:#60a5fa;
+      --green:#22c55e; --red:#ef4444; --orange:#f59e0b;
+      --gold:#f6d365; --r:14px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+      background-image:radial-gradient(ellipse at 30% 20%,rgba(59,130,246,.15) 0%,transparent 55%),
+        radial-gradient(ellipse at 70% 80%,rgba(118,75,162,.12) 0%,transparent 50%);}
+
+    .screen{display:none;min-height:100vh;flex-direction:column;}
+    .screen.active{display:flex;}
+
+    .topbar{background:rgba(0,0,0,.45);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:.8rem 1.5rem;display:flex;align-items:center;gap:.8rem;position:sticky;top:0;z-index:10;}
+    .topbar-icon{font-size:1.4rem;}
+    .topbar-title{font-weight:900;font-size:1.05rem;}
+    .back-btn{margin-left:auto;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:.3rem .9rem;cursor:pointer;font-family:inherit;font-size:.85rem;transition:all .2s;text-decoration:none;display:inline-block;}
+    .back-btn:hover{color:var(--text);}
+
+    /* SETUP */
+    .setup-body{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:2rem;}
+    .setup-inner{width:100%;max-width:680px;}
+    .setup-hero{text-align:center;margin-bottom:2rem;}
+    .setup-hero h2{font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--blue-l),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .setup-hero p{color:var(--muted);margin-top:.4rem;}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;margin-bottom:1.2rem;backdrop-filter:blur(10px);}
+    .card-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;}
+    .inp{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text);font-family:inherit;font-size:.95rem;transition:border .2s;margin-top:.4rem;}
+    .inp:focus{outline:none;border-color:var(--blue);}
+    .inp-wrap{position:relative;} .inp-wrap .inp{padding-right:2.5rem;}
+    .toggle-pw{position:absolute;right:.8rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+    .team-row{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;}
+    .team-row span{color:var(--muted);font-size:.9rem;flex:1;}
+    .stepper{display:flex;align-items:center;gap:.6rem;}
+    .step-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .step-btn:hover{background:var(--blue);border-color:var(--blue);}
+    .step-val{font-size:1.2rem;font-weight:900;min-width:1.5rem;text-align:center;}
+    .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+    .team-field{position:relative;}
+    .team-dot{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;}
+    .team-field .inp{padding-left:2.2rem;}
+    .drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:2rem;text-align:center;cursor:pointer;transition:all .3s;}
+    .drop-zone:hover,.drop-zone.dragover{border-color:var(--blue);background:rgba(59,130,246,.06);}
+    .dz-icon{font-size:2.5rem;margin-bottom:.5rem;} .dz-text{color:var(--muted);font-size:.9rem;} .dz-fmt{font-size:.78rem;color:var(--muted);margin-top:.3rem;opacity:.7;}
+    #fileInput{display:none;}
+    .file-ok{margin-top:.8rem;padding:.7rem 1rem;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;display:none;align-items:center;gap:.6rem;font-size:.9rem;}
+    .file-ok.visible{display:flex;}
+    .file-ok-name{font-weight:700;} .file-ok-size{color:var(--muted);font-size:.82rem;}
+    .btn-gen{width:100%;padding:1rem;background:linear-gradient(135deg,var(--blue),#7c3aed);border:none;border-radius:var(--r);color:#fff;font-family:inherit;font-size:1.05rem;font-weight:800;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+    .btn-gen:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(59,130,246,.3);}
+    .btn-gen:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+
+    /* LOADING */
+    .loading-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;}
+    .spinner{width:72px;height:72px;border:4px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:2rem;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-title{font-size:1.3rem;font-weight:800;} .loading-sub{color:var(--muted);margin-top:.4rem;}
+
+    /* TEAM SELECT */
+    .ts-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .ts-title{font-size:1.6rem;font-weight:900;color:var(--blue-l);}
+    .ts-sub{color:var(--muted);}
+    .ts-grid{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;max-width:500px;}
+    .ts-btn{padding:.7rem 1.4rem;border-radius:50px;border:2px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:all .2s;}
+    .ts-btn:hover{border-color:var(--blue);color:var(--blue-l);}
+
+    /* GAME */
+    .game-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:1.5rem;gap:1.2rem;}
+
+    /* Timer bar */
+    .timer-wrap{width:100%;max-width:700px;display:flex;align-items:center;gap:1rem;}
+    .timer-display{font-size:1.8rem;font-weight:900;color:var(--gold);min-width:3.5rem;text-align:center;}
+    .timer-bar-bg{flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden;}
+    .timer-bar{height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:5px;transition:width .5s linear,background .3s;}
+    .timer-btns{display:flex;gap:.5rem;}
+    .tbtn{padding:.4rem .9rem;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:.85rem;cursor:pointer;transition:all .2s;}
+    .tbtn:hover{background:rgba(255,255,255,.1);}
+
+    /* Rosco */
+    .rosco-wrap{position:relative;width:min(450px,90vw);height:min(450px,90vw);flex-shrink:0;}
+    #roscoSvg{width:100%;height:100%;}
+
+    /* Clue area */
+    .clue-area{width:100%;max-width:700px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:1.2rem 1.5rem;}
+    .clue-letter-wrap{display:flex;align-items:center;gap:.8rem;margin-bottom:.6rem;}
+    .clue-letter-big{
+      width:52px;height:52px;border-radius:50%;
+      background:var(--blue);display:flex;align-items:center;justify-content:center;
+      font-size:1.6rem;font-weight:900;color:#fff;flex-shrink:0;
+    }
+    .clue-text{font-size:1.05rem;font-weight:600;line-height:1.5;flex:1;}
+
+    /* Answer input */
+    .answer-area{width:100%;max-width:700px;display:flex;gap:.6rem;}
+    .answer-inp{
+      flex:1;background:rgba(255,255,255,.06);border:2px solid var(--border);
+      border-radius:12px;padding:.75rem 1rem;color:var(--text);
+      font-family:inherit;font-size:1.1rem;font-weight:700;transition:border .2s;
+    }
+    .answer-inp:focus{outline:none;border-color:var(--blue);}
+    .btn-confirm{padding:.75rem 1.4rem;border-radius:12px;border:none;background:var(--blue);color:#fff;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;transition:all .2s;}
+    .btn-confirm:hover{background:var(--blue-l);}
+    .btn-pass{padding:.75rem 1.2rem;border-radius:12px;border:2px solid var(--border);background:none;color:var(--muted);font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;}
+    .btn-pass:hover{border-color:var(--orange);color:var(--orange);}
+
+    /* Feedback toast */
+    .toast{
+      position:fixed;top:5rem;left:50%;transform:translateX(-50%) translateY(-20px);
+      padding:.7rem 1.5rem;border-radius:50px;font-weight:800;font-size:1rem;
+      opacity:0;transition:all .3s;pointer-events:none;z-index:100;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    .toast.correct{background:rgba(34,197,94,.9);color:#fff;}
+    .toast.wrong{background:rgba(239,68,68,.9);color:#fff;}
+    .toast.pass{background:rgba(245,158,11,.9);color:#fff;}
+
+    /* Scores bar */
+    .scores-bar{width:100%;max-width:700px;display:flex;gap:.8rem;flex-wrap:wrap;justify-content:center;}
+    .sb-chip{display:flex;align-items:center;gap:.4rem;padding:.35rem .8rem;background:var(--surface);border:1px solid var(--border);border-radius:20px;}
+    .sb-dot{width:8px;height:8px;border-radius:50%;}
+    .sb-name{font-size:.82rem;font-weight:700;}
+    .sb-pts{font-size:.82rem;font-weight:900;color:var(--gold);}
+    .sb-chip.active{border-color:var(--blue);background:var(--blue-dim);}
+
+    /* Stats row */
+    .stats-row{display:flex;gap:1.5rem;font-size:.88rem;color:var(--muted);}
+    .stat-item{display:flex;align-items:center;gap:.4rem;}
+    .stat-dot{width:10px;height:10px;border-radius:50%;}
+
+    /* Final */
+    .final-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .final-title{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;background:linear-gradient(135deg,var(--blue-l),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .podium{display:flex;align-items:flex-end;gap:.5rem;}
+    .pod{display:flex;flex-direction:column;align-items:center;gap:.4rem;}
+    .pod-name{font-weight:800;font-size:.88rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pod-pts{font-size:.78rem;color:var(--muted);}
+    .pod-block{width:80px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+    .pod-1 .pod-block{height:110px;background:linear-gradient(180deg,#f6d365,#fda085);}
+    .pod-2 .pod-block{height:82px;background:linear-gradient(180deg,#a8b2d8,#8892b0);}
+    .pod-3 .pod-block{height:64px;background:linear-gradient(180deg,#cd9b4c,#a67c52);}
+    .all-scores-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;min-width:300px;}
+    .asr{display:flex;align-items:center;gap:.7rem;padding:.45rem .5rem;border-radius:8px;}
+    .asr-rank{font-weight:900;color:var(--muted);width:1.4rem;text-align:center;}
+    .asr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .asr-name{flex:1;font-weight:700;}
+    .asr-pts{font-weight:900;color:var(--gold);}
+    .btn-again{padding:.85rem 2.2rem;background:linear-gradient(135deg,var(--blue),#7c3aed);border:none;border-radius:50px;color:#fff;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;transition:all .3s;}
+    .btn-again:hover{transform:translateY(-3px);}
+  </style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ SETUP ══ -->
+<div id="s-setup" class="screen active">
+  <div class="topbar">
+    <span class="topbar-icon">🔤</span>
+    <span class="topbar-title">Pasapalabra</span>
+    <a href="index.html" class="back-btn">← Inicio</a>
+  </div>
+  <div class="setup-body">
+    <div class="setup-inner">
+      <div class="setup-hero">
+        <h2>¡Configura tu rosco!</h2>
+        <p>La IA creará una definición por cada letra.</p>
+      </div>
+                  <div class="card">
+        <div class="card-label">🔑 API Key de Gemini</div>
+        <div class="inp-wrap">
+          <input class="inp" id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
+          <button class="toggle-pw" onclick="togglePw()" title="Mostrar/ocultar">👁</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted);margin-top:.5rem;">Obtén tu key gratis en <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">aistudio.google.com</a></p>
+        <div id="keySaved" style="display:none;align-items:center;gap:.5rem;font-size:.78rem;color:#22c55e;margin-top:.5rem;">✅ API key guardada en este navegador · <button onclick="forgetKey()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;text-decoration:underline;">Olvidar</button></div>
+      </div>
+      <div class="card">
+        <div class="card-label">👥 Equipos</div>
+        <div class="team-row">
+          <span>Número de equipos:</span>
+          <div class="stepper">
+            <button class="step-btn" onclick="changeTeams(-1)">−</button>
+            <span class="step-val" id="teamCount">2</span>
+            <button class="step-btn" onclick="changeTeams(1)">+</button>
+          </div>
+        </div>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">⏱ Tiempo por equipo</div>
+        <div class="team-row">
+          <span>Segundos por turno:</span>
+          <div class="stepper">
+            <button class="step-btn" onclick="changeTime(-30)">−</button>
+            <span class="step-val" id="timeVal">90</span>
+            <button class="step-btn" onclick="changeTime(30)">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">📄 Archivo con el tema</div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">📂</div>
+          <div class="dz-text">Haz clic o arrastra tu archivo aquí</div>
+          <div class="dz-fmt">Formatos admitidos: .txt · .docx · .pdf</div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.docx,.pdf">
+        <div class="file-ok" id="fileOk">
+          <span>✅</span>
+          <span class="file-ok-name" id="fileName"></span>
+          <span class="file-ok-size" id="fileSize"></span>
+        </div>
+      </div>
+      <button class="btn-gen" id="btnGen" onclick="startGame()" disabled>✨ Generar rosco</button>
+      <div id="errMsg" style="color:#ef4444;font-size:.88rem;text-align:center;margin-top:.8rem;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div id="s-loading" class="screen">
+  <div class="topbar"><span class="topbar-icon">🔤</span><span class="topbar-title">Pasapalabra</span></div>
+  <div class="loading-body">
+    <div class="spinner"></div>
+    <div class="loading-title">Generando el rosco…</div>
+    <div class="loading-sub">La IA está creando una definición por cada letra</div>
+  </div>
+</div>
+
+<!-- ══ TEAM SELECT ══ -->
+<div id="s-teamselect" class="screen">
+  <div class="topbar"><span class="topbar-icon">🔤</span><span class="topbar-title">Pasapalabra</span></div>
+  <div class="ts-body">
+    <div class="ts-title">🔤 ¿Quién juega ahora?</div>
+    <p class="ts-sub">El equipo seleccionado resolverá el rosco</p>
+    <div class="ts-grid" id="tsGrid"></div>
+    <button style="margin-top:1rem;padding:.7rem 1.5rem;border-radius:50px;border:1px solid var(--border);background:none;color:var(--muted);font-family:inherit;cursor:pointer;" onclick="showFinal()">Ver resultados finales →</button>
+  </div>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="s-game" class="screen">
+  <div class="topbar">
+    <span class="topbar-icon">🔤</span>
+    <span class="topbar-title" id="activeTeamTitle">Equipo 1 — Rosco</span>
+    <a href="#" class="back-btn" onclick="endTurn()">Terminar turno</a>
+  </div>
+  <div class="game-body">
+
+    <!-- Timer -->
+    <div class="timer-wrap">
+      <div class="timer-display" id="timerDisp">90</div>
+      <div class="timer-bar-bg"><div class="timer-bar" id="timerBar" style="width:100%"></div></div>
+      <div class="timer-btns">
+        <button class="tbtn" id="btnPause" onclick="togglePause()">⏸</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-item"><div class="stat-dot" style="background:var(--green)"></div><span id="statCorrect">0 correctas</span></div>
+      <div class="stat-item"><div class="stat-dot" style="background:var(--red)"></div><span id="statWrong">0 errores</span></div>
+      <div class="stat-item"><div class="stat-dot" style="background:var(--orange)"></div><span id="statPend">27 pendientes</span></div>
+    </div>
+
+    <!-- Rosco SVG -->
+    <div class="rosco-wrap">
+      <svg id="roscoSvg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+
+    <!-- Clue -->
+    <div class="clue-area">
+      <div class="clue-letter-wrap">
+        <div class="clue-letter-big" id="cueLetter">A</div>
+        <div class="clue-text" id="clueText">…</div>
+      </div>
+    </div>
+
+    <!-- Answer -->
+    <div class="answer-area">
+      <input class="answer-inp" id="answerInp" type="text" placeholder="Escribe tu respuesta…" autocomplete="off" onkeydown="if(event.key==='Enter')confirmAnswer()">
+      <button class="btn-confirm" onclick="confirmAnswer()">✓ Confirmar</button>
+      <button class="btn-pass" onclick="passLetter()">→ Pasa</button>
+    </div>
+
+    <!-- Scores -->
+    <div class="scores-bar" id="scoresBar"></div>
+  </div>
+</div>
+
+<!-- ══ FINAL ══ -->
+<div id="s-final" class="screen">
+  <div class="topbar"><span class="topbar-icon">🔤</span><span class="topbar-title">Pasapalabra</span><a href="index.html" class="back-btn">← Inicio</a></div>
+  <div class="final-body">
+    <div class="final-title">🏆 ¡Rosco completado!</div>
+    <div class="podium" id="podium"></div>
+    <div class="all-scores-box" id="allScores"></div>
+    <button class="btn-again" onclick="resetGame()">🔄 Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const TEAM_COLORS = ['#3b82f6','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4'];
+const LETTERS = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+let numTeams = 2, turnTime = 90;
+let teams = [], scores = [], teamsDone = [];
+let roscoData = []; // [{letra, pista, respuesta}]
+let extractedText = '';
+let activeTeam = 0;
+
+// Per-turn state
+let letterState = []; // 'pending','correct','wrong','passed'
+let curLetterIdx = 0;
+let timerSec = 90, timerInterval = null, isPaused = false;
+let correctCount = 0, wrongCount = 0;
+
+renderTeamGrid();
+
+function renderTeamGrid() {
+  const g = document.getElementById('teamGrid');
+  g.innerHTML = '';
+  const def = ['Equipo 1','Equipo 2','Equipo 3','Equipo 4','Equipo 5','Equipo 6'];
+  for (let i = 0; i < numTeams; i++) {
+    const prev = teams[i] || def[i];
+    g.innerHTML += `<div class="team-field"><div class="team-dot" style="background:${TEAM_COLORS[i]}"></div><input class="inp" type="text" placeholder="${def[i]}" value="${prev}" id="tn-${i}" oninput="checkReady()"></div>`;
+  }
+  checkReady();
+}
+
+function changeTeams(d) { numTeams = Math.max(1, Math.min(6, numTeams+d)); document.getElementById('teamCount').textContent = numTeams; renderTeamGrid(); }
+function changeTime(d) { turnTime = Math.max(30, Math.min(300, turnTime+d)); document.getElementById('timeVal').textContent = turnTime; }
+function togglePw(){const i=document.getElementById('apiKey');i.type=i.type==='password'?'text':'password';}
+function checkReady(){document.getElementById('btnGen').disabled=!(document.getElementById('apiKey').value.trim().length>5&&extractedText.length>50);}
+document.getElementById('apiKey').addEventListener('input',checkReady);
+(function(){const k=localStorage.getItem('gemini_api_key');if(k){document.getElementById('apiKey').value=k;document.getElementById('keySaved').style.display='flex';checkReady();}})();
+function forgetKey(){localStorage.removeItem('gemini_api_key');document.getElementById('apiKey').value='';document.getElementById('keySaved').style.display='none';checkReady();}
+
+const dz=document.getElementById('dropZone'), fi=document.getElementById('fileInput');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+fi.addEventListener('change',()=>handleFile(fi.files[0]));
+
+async function handleFile(file) {
+  if (!file) return;
+  try {
+    let text = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext==='txt') { text=await file.text(); }
+    else if (ext==='docx') { const buf=await file.arrayBuffer(); const res=await mammoth.extractRawText({arrayBuffer:buf}); text=res.value; }
+    else if (ext==='pdf') {
+      const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      for (let p=1;p<=pdf.numPages;p++) { const page=await pdf.getPage(p); const c=await page.getTextContent(); text+=c.items.map(i=>i.str).join(' ')+'\n'; }
+    } else { alert('Usa .txt, .docx o .pdf'); return; }
+    extractedText=text.trim();
+    document.getElementById('fileOk').classList.add('visible');
+    document.getElementById('fileName').textContent=file.name;
+    document.getElementById('fileSize').textContent=Math.round(file.size/1024)+' KB';
+    checkReady();
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+async function startGame() {
+  teams=[]; scores=[]; teamsDone=[];
+  for(let i=0;i<numTeams;i++){teams.push(document.getElementById(`tn-${i}`).value.trim()||`Equipo ${i+1}`);scores.push(0);teamsDone.push(false);}
+  show('s-loading');
+
+  const apiKey=document.getElementById('apiKey').value.trim();
+  localStorage.setItem('gemini_api_key',apiKey);
+  const prompt = `Eres un creador de juegos educativos en español. A partir del siguiente texto, genera un rosco de Pasapalabra completo.
+Para CADA una de las 27 letras del abecedario español (A,B,C,D,E,F,G,H,I,J,K,L,M,N,Ñ,O,P,Q,R,S,T,U,V,W,X,Y,Z), crea una pista cuya respuesta sea UNA SOLA PALABRA relacionada con el contenido del texto.
+La pista debe especificar si la respuesta "empieza por [letra]" o "contiene la [letra]".
+Devuelve SOLO un array JSON de exactamente 27 elementos sin texto adicional:
+[{"letra":"A","pista":"Empieza por A: ...","respuesta":"PALABRA"},...]
+La respuesta debe estar en MAYÚSCULAS y ser una sola palabra.
+
+TEXTO:
+${extractedText.slice(0,12000)}`;
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.7}})});
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    roscoData = JSON.parse(data.candidates[0].content.parts[0].text);
+    // Ensure all 27 letters present
+    if (roscoData.length < 20) throw new Error('El rosco generado tiene menos de 20 letras. Inténtalo de nuevo.');
+    goSelectTeam();
+  } catch(e) {
+    show('s-setup');
+    const err=document.getElementById('errMsg'); err.textContent='❌ Error: '+e.message; err.style.display='block';
+    setTimeout(()=>err.style.display='none',7000);
+  }
+}
+
+function goSelectTeam() {
+  const grid = document.getElementById('tsGrid');
+  grid.innerHTML = teams.map((t,i)=>`
+    <button class="ts-btn" onclick="selectTeam(${i})">
+      <span style="color:${TEAM_COLORS[i]}">●</span> ${t} — ${scores[i]} pts ${teamsDone[i]?'✓':''}
+    </button>`).join('');
+  show('s-teamselect');
+}
+
+function selectTeam(i) {
+  activeTeam = i;
+  letterState = roscoData.map(()=>'pending');
+  curLetterIdx = 0;
+  correctCount = 0; wrongCount = 0;
+  timerSec = turnTime; isPaused = false;
+  document.getElementById('activeTeamTitle').textContent = teams[i] + ' — Rosco';
+  drawRosco();
+  renderScoresBar();
+  startTimer();
+  showCurrentLetter();
+  show('s-game');
+  document.getElementById('answerInp').focus();
+}
+
+// ── ROSCO SVG ──
+function drawRosco() {
+  const svg = document.getElementById('roscoSvg');
+  svg.innerHTML = '';
+  const cx=200, cy=200, r=160, letterR=22;
+  const n = roscoData.length;
+  roscoData.forEach((item, i) => {
+    const angle = (i/n)*2*Math.PI - Math.PI/2;
+    const x = cx + r*Math.cos(angle);
+    const y = cy + r*Math.sin(angle);
+    const state = letterState[i];
+    const isCur = i===curLetterIdx;
+    const fill = isCur ? '#3b82f6' : state==='correct' ? '#22c55e' : state==='wrong' ? '#ef4444' : state==='passed' ? '#f59e0b' : '#1e293b';
+    const stroke = isCur ? '#60a5fa' : state==='correct' ? '#4ade80' : state==='wrong' ? '#f87171' : state==='passed' ? '#fbbf24' : '#334155';
+    const textCol = '#ffffff';
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.cursor='pointer';
+    g.onclick=()=>jumpToLetter(i);
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx',x); circle.setAttribute('cy',y); circle.setAttribute('r',letterR);
+    circle.setAttribute('fill',fill); circle.setAttribute('stroke',stroke); circle.setAttribute('stroke-width', isCur?3:1.5);
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.setAttribute('x',x); text.setAttribute('y',y); text.setAttribute('text-anchor','middle');
+    text.setAttribute('dominant-baseline','central'); text.setAttribute('fill',textCol);
+    text.setAttribute('font-family','Nunito,sans-serif'); text.setAttribute('font-weight','800');
+    text.setAttribute('font-size', item.letra==='Ñ'?'13':'15');
+    text.textContent = item.letra;
+    if (isCur) {
+      const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      ring.setAttribute('cx',x);ring.setAttribute('cy',y);ring.setAttribute('r',letterR+5);
+      ring.setAttribute('fill','none');ring.setAttribute('stroke','#60a5fa');ring.setAttribute('stroke-width','2');ring.setAttribute('opacity','0.5');
+      g.appendChild(ring);
+    }
+    g.appendChild(circle); g.appendChild(text);
+    svg.appendChild(g);
+  });
+}
+
+function jumpToLetter(i) {
+  if(letterState[i]==='correct'||letterState[i]==='wrong') return;
+  curLetterIdx=i; drawRosco(); showCurrentLetter();
+}
+
+function showCurrentLetter() {
+  // Find next non-done letter
+  const start = curLetterIdx;
+  let found = false;
+  for (let offset=0; offset<roscoData.length; offset++) {
+    const idx=(start+offset)%roscoData.length;
+    if(letterState[idx]==='pending'||letterState[idx]==='passed'){
+      curLetterIdx=idx; found=true; break;
+    }
+  }
+  if(!found){endTurn();return;}
+  const item = roscoData[curLetterIdx];
+  document.getElementById('cueLetter').textContent = item.letra;
+  document.getElementById('clueText').textContent = item.pista;
+  document.getElementById('answerInp').value='';
+  updateStats();
+  drawRosco();
+}
+
+function confirmAnswer() {
+  const inp = document.getElementById('answerInp');
+  const answer = inp.value.trim().toUpperCase();
+  if (!answer) return;
+  const correct = roscoData[curLetterIdx].respuesta.toUpperCase();
+  if (answer === correct) {
+    letterState[curLetterIdx] = 'correct';
+    correctCount++;
+    showToast('✅ ¡Correcto!','correct');
+  } else {
+    letterState[curLetterIdx] = 'wrong';
+    wrongCount++;
+    showToast(`❌ Era: ${correct}`,'wrong');
+  }
+  curLetterIdx++;
+  setTimeout(()=>showCurrentLetter(), 800);
+}
+
+function passLetter() {
+  if(letterState[curLetterIdx]==='pending') letterState[curLetterIdx]='passed';
+  showToast('→ Pasapalabra','pass');
+  curLetterIdx++;
+  setTimeout(()=>showCurrentLetter(), 400);
+}
+
+function updateStats() {
+  const pend = letterState.filter(s=>s==='pending'||s==='passed').length;
+  document.getElementById('statCorrect').textContent=correctCount+' correctas';
+  document.getElementById('statWrong').textContent=wrongCount+' errores';
+  document.getElementById('statPend').textContent=pend+' pendientes';
+}
+
+// ── TIMER ──
+function startTimer() {
+  clearInterval(timerInterval);
+  const maxTime = turnTime;
+  updateTimerDisplay();
+  timerInterval=setInterval(()=>{
+    if(isPaused) return;
+    timerSec--;
+    updateTimerDisplay();
+    const pct=(timerSec/maxTime)*100;
+    const bar=document.getElementById('timerBar');
+    bar.style.width=pct+'%';
+    bar.style.background=timerSec<20?'linear-gradient(90deg,#ef4444,#f59e0b)':'linear-gradient(90deg,#22c55e,#3b82f6)';
+    document.getElementById('timerDisp').style.color=timerSec<20?'#ef4444':'var(--gold)';
+    if(timerSec<=0){clearInterval(timerInterval);endTurn();}
+  },1000);
+}
+
+function updateTimerDisplay() { document.getElementById('timerDisp').textContent=timerSec; }
+function togglePause() { isPaused=!isPaused; document.getElementById('btnPause').textContent=isPaused?'▶':'⏸'; }
+
+function endTurn() {
+  clearInterval(timerInterval);
+  scores[activeTeam]+=correctCount;
+  teamsDone[activeTeam]=true;
+  goSelectTeam();
+}
+
+function renderScoresBar() {
+  document.getElementById('scoresBar').innerHTML=teams.map((t,i)=>`
+    <div class="sb-chip ${i===activeTeam?'active':''}">
+      <div class="sb-dot" style="background:${TEAM_COLORS[i]}"></div>
+      <span class="sb-name">${t}</span>
+      <span class="sb-pts">${scores[i]}</span>
+    </div>`).join('');
+}
+
+// ── TOAST ──
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.className=`toast ${type} show`;
+  setTimeout(()=>t.classList.remove('show'),1500);
+}
+
+// ── FINAL ──
+function showFinal() {
+  const ranked=teams.map((t,i)=>({name:t,pts:scores[i],color:TEAM_COLORS[i]})).sort((a,b)=>b.pts-a.pts);
+  const podOrder=[1,0,2],podClasses=['pod-2','pod-1','pod-3'],podEmojis=['🥇','🥈','🥉'];
+  document.getElementById('podium').innerHTML=podOrder.map((rank,vi)=>{
+    const t=ranked[rank]; if(!t) return '';
+    return `<div class="pod ${podClasses[vi]}"><div class="pod-name">${t.name}</div><div class="pod-pts">${t.pts} pts</div><div class="pod-block">${podEmojis[rank]}</div></div>`;
+  }).join('');
+  document.getElementById('allScores').innerHTML=ranked.map((t,i)=>`
+    <div class="asr"><span class="asr-rank">${i+1}</span><div class="asr-dot" style="background:${t.color}"></div><span class="asr-name">${t.name}</span><span class="asr-pts">${t.pts} pts</span></div>`).join('');
+  show('s-final');
+}
+
+function resetGame() { scores=teams.map(()=>0); teamsDone=teams.map(()=>false); show('s-setup'); }
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+</script>
+</body>
+</html>

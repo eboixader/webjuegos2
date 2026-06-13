@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¿Quién quiere ser millonario? · Juegos Educativos</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <style>
+    :root {
+      --bg:#05050f; --surface:rgba(255,255,255,0.05); --border:rgba(255,255,255,0.09);
+      --text:#f0f0ff; --muted:rgba(240,240,255,0.5);
+      --blue:#1a3a6e; --blue-l:#2563eb; --gold:#f6d365; --gold2:#fda085;
+      --green:#22c55e; --red:#ef4444; --orange:#f59e0b;
+      --r:14px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Nunito',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;
+      background-image:
+        radial-gradient(ellipse at 50% 0%, rgba(37,99,235,.25) 0%, transparent 60%),
+        radial-gradient(ellipse at 20% 80%, rgba(118,75,162,.15) 0%, transparent 50%);}
+
+    .screen{display:none;min-height:100vh;flex-direction:column;}
+    .screen.active{display:flex;}
+
+    /* TOP BAR */
+    .topbar{
+      background:rgba(0,0,0,.5);backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border);
+      padding:.8rem 1.5rem;display:flex;align-items:center;gap:.8rem;
+      position:sticky;top:0;z-index:10;
+    }
+    .topbar-icon{font-size:1.4rem;}
+    .topbar-title{font-weight:900;font-size:1.05rem;}
+    .back-btn{
+      margin-left:auto;background:none;border:1px solid var(--border);
+      color:var(--muted);border-radius:8px;padding:.3rem .9rem;cursor:pointer;
+      font-family:inherit;font-size:.85rem;transition:all .2s;text-decoration:none;display:inline-block;
+    }
+    .back-btn:hover{color:var(--text);border-color:rgba(255,255,255,.3);}
+
+    /* ── SETUP ── */
+    .setup-body{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:2rem;}
+    .setup-inner{width:100%;max-width:680px;}
+    .setup-hero{text-align:center;margin-bottom:2rem;}
+    .setup-hero h2{
+      font-size:2.2rem;font-weight:900;
+      background:linear-gradient(135deg,var(--gold),var(--gold2));
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .setup-hero p{color:var(--muted);margin-top:.4rem;}
+
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1.4rem;margin-bottom:1.2rem;backdrop-filter:blur(10px);}
+    .card-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;}
+    .inp{width:100%;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;color:var(--text);font-family:inherit;font-size:.95rem;transition:border .2s;margin-top:.4rem;}
+    .inp:focus{outline:none;border-color:var(--blue-l);}
+    .inp-wrap{position:relative;}
+    .inp-wrap .inp{padding-right:2.5rem;}
+    .toggle-pw{position:absolute;right:.8rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+    .team-row{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;}
+    .team-row span{color:var(--muted);font-size:.9rem;flex:1;}
+    .stepper{display:flex;align-items:center;gap:.6rem;}
+    .step-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .step-btn:hover{background:var(--blue-l);border-color:var(--blue-l);}
+    .step-val{font-size:1.2rem;font-weight:900;min-width:1.5rem;text-align:center;}
+    .team-grid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;}
+    .team-field{position:relative;}
+    .team-dot{position:absolute;left:.9rem;top:50%;transform:translateY(-50%);width:10px;height:10px;border-radius:50%;}
+    .team-field .inp{padding-left:2.2rem;}
+    .drop-zone{border:2px dashed var(--border);border-radius:var(--r);padding:2rem;text-align:center;cursor:pointer;transition:all .3s;}
+    .drop-zone:hover,.drop-zone.dragover{border-color:var(--blue-l);background:rgba(37,99,235,.06);}
+    .dz-icon{font-size:2.5rem;margin-bottom:.5rem;}
+    .dz-text{color:var(--muted);font-size:.9rem;}
+    .dz-fmt{font-size:.78rem;color:var(--muted);margin-top:.3rem;opacity:.7;}
+    #fileInput{display:none;}
+    .file-ok{margin-top:.8rem;padding:.7rem 1rem;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;display:none;align-items:center;gap:.6rem;font-size:.9rem;}
+    .file-ok.visible{display:flex;}
+    .file-ok-name{font-weight:700;}
+    .file-ok-size{color:var(--muted);font-size:.82rem;}
+    .btn-gen{width:100%;padding:1rem;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:var(--r);color:#111;font-family:inherit;font-size:1.05rem;font-weight:900;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
+    .btn-gen:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(246,211,101,.3);}
+    .btn-gen:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none;}
+
+    /* ── LOADING ── */
+    .loading-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;}
+    .spinner{width:72px;height:72px;border:4px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:2rem;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .loading-title{font-size:1.3rem;font-weight:800;}
+    .loading-sub{color:var(--muted);margin-top:.4rem;}
+
+    /* ── TEAM SELECT ── */
+    .ts-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .ts-title{font-size:1.6rem;font-weight:900;color:var(--gold);}
+    .ts-sub{color:var(--muted);}
+    .ts-grid{display:flex;flex-wrap:wrap;gap:.8rem;justify-content:center;max-width:500px;}
+    .ts-btn{
+      padding:.7rem 1.4rem;border-radius:50px;border:2px solid var(--border);
+      background:var(--surface);color:var(--text);font-family:inherit;font-size:1rem;
+      font-weight:700;cursor:pointer;transition:all .2s;
+    }
+    .ts-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* ── GAME SCREEN ── */
+    .game-wrap{flex:1;display:grid;grid-template-columns:1fr 220px;gap:0;}
+    @media(max-width:700px){.game-wrap{grid-template-columns:1fr;}.prize-ladder{display:none;}}
+    .game-main{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;gap:1.5rem;}
+
+    /* Lifelines */
+    .lifelines{display:flex;gap:.8rem;justify-content:center;}
+    .ll-btn{
+      padding:.5rem 1.1rem;border-radius:50px;border:2px solid rgba(246,211,101,.4);
+      background:rgba(246,211,101,.08);color:var(--gold);font-family:inherit;font-size:.88rem;
+      font-weight:800;cursor:pointer;transition:all .2s;
+    }
+    .ll-btn:hover:not(:disabled){background:rgba(246,211,101,.2);}
+    .ll-btn:disabled{opacity:.3;cursor:not-allowed;text-decoration:line-through;}
+
+    /* Question box */
+    .q-box{
+      background:linear-gradient(135deg, rgba(26,58,110,.8), rgba(5,5,15,.8));
+      border:2px solid rgba(37,99,235,.4);
+      border-radius:20px;padding:1.5rem 2rem;max-width:600px;width:100%;text-align:center;
+      backdrop-filter:blur(10px);
+    }
+    .q-box-num{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;}
+    .q-box-text{font-size:clamp(1rem,2.5vw,1.35rem);font-weight:700;line-height:1.55;}
+
+    /* Options */
+    .options{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;max-width:600px;width:100%;}
+    @media(max-width:500px){.options{grid-template-columns:1fr;}}
+    .opt-btn{
+      padding:.75rem 1rem;border-radius:12px;
+      border:2px solid rgba(37,99,235,.35);
+      background:rgba(26,58,110,.5);color:var(--text);font-family:inherit;
+      font-size:.95rem;font-weight:700;cursor:pointer;transition:all .2s;
+      text-align:left;display:flex;align-items:center;gap:.6rem;
+    }
+    .opt-letter{
+      width:28px;height:28px;border-radius:50%;
+      background:rgba(37,99,235,.4);display:flex;align-items:center;justify-content:center;
+      font-size:.8rem;font-weight:900;flex-shrink:0;
+    }
+    .opt-btn:hover:not(:disabled){background:rgba(37,99,235,.5);border-color:rgba(37,99,235,.7);}
+    .opt-btn.correct{background:rgba(34,197,94,.25);border-color:var(--green);color:var(--green);}
+    .opt-btn.wrong{background:rgba(239,68,68,.2);border-color:var(--red);color:var(--red);}
+    .opt-btn.hidden{opacity:.2;}
+    .opt-btn:disabled{cursor:default;}
+
+    /* Prize ladder */
+    .prize-ladder{background:rgba(0,0,0,.3);border-left:1px solid var(--border);padding:1rem;overflow-y:auto;}
+    .pl-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin-bottom:.8rem;text-align:center;}
+    .pl-item{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:.3rem .6rem;border-radius:8px;margin-bottom:.3rem;font-size:.82rem;
+    }
+    .pl-item.current{background:rgba(246,211,101,.15);border:1px solid rgba(246,211,101,.3);}
+    .pl-item.reached{background:rgba(34,197,94,.1);}
+    .pl-num{color:var(--muted);font-size:.72rem;}
+    .pl-prize{font-weight:800;color:var(--gold);}
+    .pl-item.current .pl-prize{color:var(--gold);font-size:.9rem;}
+
+    /* Result overlay */
+    .result-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);
+      display:none;flex-direction:column;align-items:center;justify-content:center;
+      text-align:center;padding:2rem;z-index:50;
+    }
+    .result-overlay.visible{display:flex;}
+    .result-icon{font-size:5rem;margin-bottom:1rem;animation:popIn .5s cubic-bezier(.34,1.56,.64,1);}
+    @keyframes popIn{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+    .result-msg{font-size:2rem;font-weight:900;margin-bottom:.5rem;}
+    .result-sub{color:var(--muted);font-size:1.1rem;margin-bottom:2rem;}
+    .result-prize{font-size:2.5rem;font-weight:900;color:var(--gold);margin-bottom:2rem;}
+    .result-btns{display:flex;gap:1rem;flex-wrap:wrap;justify-content:center;}
+    .rbtn{padding:.8rem 1.8rem;border-radius:50px;border:none;font-family:inherit;font-size:.95rem;font-weight:800;cursor:pointer;transition:all .3s;}
+    .rbtn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#111;}
+    .rbtn-ghost{background:var(--surface);border:1px solid var(--border);color:var(--text);}
+    .rbtn:hover{transform:translateY(-2px);}
+
+    /* Team scoreboard overlay */
+    .team-scores-bar{
+      background:rgba(0,0,0,.3);border-top:1px solid var(--border);
+      padding:.6rem 1.5rem;display:flex;gap:1rem;align-items:center;
+      overflow-x:auto;
+    }
+    .ts-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);white-space:nowrap;}
+    .ts-score{display:flex;align-items:center;gap:.4rem;white-space:nowrap;}
+    .ts-dot{width:8px;height:8px;border-radius:50%;}
+    .ts-name-s{font-size:.82rem;font-weight:700;}
+    .ts-pts-s{font-size:.82rem;font-weight:900;color:var(--gold);}
+
+    /* Final */
+    .final-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;gap:1.5rem;}
+    .final-title{font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;background:linear-gradient(135deg,var(--gold),var(--gold2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .podium{display:flex;align-items:flex-end;gap:.5rem;}
+    .pod{display:flex;flex-direction:column;align-items:center;gap:.4rem;}
+    .pod-name{font-weight:800;font-size:.88rem;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .pod-pts{font-size:.78rem;color:var(--muted);}
+    .pod-block{width:80px;border-radius:8px 8px 0 0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;}
+    .pod-1 .pod-block{height:110px;background:linear-gradient(180deg,#f6d365,#fda085);}
+    .pod-2 .pod-block{height:82px;background:linear-gradient(180deg,#a8b2d8,#8892b0);}
+    .pod-3 .pod-block{height:64px;background:linear-gradient(180deg,#cd9b4c,#a67c52);}
+    .all-scores-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:1rem;min-width:300px;}
+    .asr{display:flex;align-items:center;gap:.7rem;padding:.45rem .5rem;border-radius:8px;}
+    .asr-rank{font-weight:900;color:var(--muted);width:1.4rem;text-align:center;}
+    .asr-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .asr-name{flex:1;font-weight:700;}
+    .asr-pts{font-weight:900;color:var(--gold);}
+    .btn-again{padding:.85rem 2.2rem;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:50px;color:#111;font-family:inherit;font-size:1rem;font-weight:800;cursor:pointer;transition:all .3s;}
+    .btn-again:hover{transform:translateY(-3px);}
+  </style>
+</head>
+<body>
+
+<!-- ═══ SETUP ═══ -->
+<div id="s-setup" class="screen active">
+  <div class="topbar">
+    <span class="topbar-icon">💰</span>
+    <span class="topbar-title">¿Quién quiere ser millonario?</span>
+    <a href="index.html" class="back-btn">← Inicio</a>
+  </div>
+  <div class="setup-body">
+    <div class="setup-inner">
+      <div class="setup-hero">
+        <h2>¡Configura tu juego!</h2>
+        <p>Sube tu tema y la IA generará 15 preguntas.</p>
+      </div>
+                  <div class="card">
+        <div class="card-label">🔑 API Key de Gemini</div>
+        <div class="inp-wrap">
+          <input class="inp" id="apiKey" type="password" placeholder="AIza..." autocomplete="off">
+          <button class="toggle-pw" onclick="togglePw()" title="Mostrar/ocultar">👁</button>
+        </div>
+        <p style="font-size:.78rem;color:var(--muted);margin-top:.5rem;">Obtén tu key gratis en <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--blue)">aistudio.google.com</a></p>
+        <div id="keySaved" style="display:none;align-items:center;gap:.5rem;font-size:.78rem;color:#22c55e;margin-top:.5rem;">✅ API key guardada en este navegador · <button onclick="forgetKey()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;text-decoration:underline;">Olvidar</button></div>
+      </div>
+      <div class="card">
+        <div class="card-label">👥 Equipos</div>
+        <div class="team-row">
+          <span>Número de equipos:</span>
+          <div class="stepper">
+            <button class="step-btn" onclick="changeTeams(-1)">−</button>
+            <span class="step-val" id="teamCount">3</span>
+            <button class="step-btn" onclick="changeTeams(1)">+</button>
+          </div>
+        </div>
+        <div class="team-grid" id="teamGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">📄 Archivo con el tema</div>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+          <div class="dz-icon">📂</div>
+          <div class="dz-text">Haz clic o arrastra tu archivo aquí</div>
+          <div class="dz-fmt">Formatos admitidos: .txt · .docx · .pdf</div>
+        </div>
+        <input type="file" id="fileInput" accept=".txt,.docx,.pdf">
+        <div class="file-ok" id="fileOk">
+          <span>✅</span>
+          <span class="file-ok-name" id="fileName"></span>
+          <span class="file-ok-size" id="fileSize"></span>
+        </div>
+      </div>
+      <button class="btn-gen" id="btnGen" onclick="startGame()" disabled>✨ Generar juego</button>
+      <div id="errMsg" style="color:#ef4444;font-size:.88rem;text-align:center;margin-top:.8rem;display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LOADING ═══ -->
+<div id="s-loading" class="screen">
+  <div class="topbar"><span class="topbar-icon">💰</span><span class="topbar-title">¿Quién quiere ser millonario?</span></div>
+  <div class="loading-body">
+    <div class="spinner"></div>
+    <div class="loading-title">Generando preguntas…</div>
+    <div class="loading-sub">La IA está analizando tu documento</div>
+  </div>
+</div>
+
+<!-- ═══ TEAM SELECT ═══ -->
+<div id="s-teamselect" class="screen">
+  <div class="topbar"><span class="topbar-icon">💰</span><span class="topbar-title">¿Quién quiere ser millonario?</span></div>
+  <div class="ts-body">
+    <div class="ts-title">¿Qué equipo juega ahora?</div>
+    <p class="ts-sub">El equipo seleccionado responderá las 15 preguntas</p>
+    <div class="ts-grid" id="tsGrid"></div>
+  </div>
+</div>
+
+<!-- ═══ GAME ═══ -->
+<div id="s-game" class="screen">
+  <div class="topbar">
+    <span class="topbar-icon">💰</span>
+    <span class="topbar-title" id="activeTeamName">Equipo 1</span>
+    <a href="#" class="back-btn" onclick="goSelectTeam()">Cambiar equipo</a>
+  </div>
+  <div class="game-wrap">
+    <div class="game-main">
+      <div class="lifelines">
+        <button class="ll-btn" id="ll50" onclick="use5050()">50/50</button>
+        <button class="ll-btn" id="llPhone" onclick="usePhone()">📞 Llamada</button>
+        <button class="ll-btn" id="llPub" onclick="useAudience()">👥 Público</button>
+      </div>
+      <div class="q-box">
+        <div class="q-box-num" id="qNum">PREGUNTA 1 DE 15</div>
+        <div class="q-box-text" id="qText">…</div>
+      </div>
+      <div class="options" id="opts"></div>
+    </div>
+    <div class="prize-ladder">
+      <div class="pl-title">💰 Premios</div>
+      <div id="ladder"></div>
+    </div>
+  </div>
+  <div class="team-scores-bar">
+    <span class="ts-label">Marcador:</span>
+    <div id="scoresBar"></div>
+  </div>
+</div>
+
+<!-- ═══ RESULT OVERLAY ═══ -->
+<div id="resultOverlay" class="result-overlay">
+  <div class="result-icon" id="resIcon">🏆</div>
+  <div class="result-msg" id="resMsg">¡Ganaste!</div>
+  <div class="result-sub" id="resSub"></div>
+  <div class="result-prize" id="resPrize"></div>
+  <div class="result-btns">
+    <button class="rbtn rbtn-gold" onclick="nextTeam()">Siguiente equipo</button>
+    <button class="rbtn rbtn-ghost" onclick="showFinal()">Ver resultados finales</button>
+  </div>
+</div>
+
+<!-- ═══ FINAL ═══ -->
+<div id="s-final" class="screen">
+  <div class="topbar"><span class="topbar-icon">💰</span><span class="topbar-title">¿Quién quiere ser millonario?</span><a href="index.html" class="back-btn">← Inicio</a></div>
+  <div class="final-body">
+    <div class="final-title">🏆 ¡Juego terminado!</div>
+    <div class="podium" id="podium"></div>
+    <div class="all-scores-box" id="allScores"></div>
+    <button class="btn-again" onclick="resetGame()">🔄 Jugar de nuevo</button>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const TEAM_COLORS = ['#667eea','#22c55e','#f59e0b','#ef4444','#a855f7','#06b6d4'];
+const PRIZES = ['100 €','200 €','300 €','500 €','1.000 €','2.000 €','4.000 €','8.000 €','16.000 €','32.000 €','64.000 €','125.000 €','250.000 €','500.000 €','1.000.000 €'];
+const SAFE_HAVENS = [4, 9]; // indices of safe haven questions (0-based)
+
+let numTeams = 3, teams = [], scores = [], teamsDone = [];
+let questions = [], curQ = 0, activeTeam = 0;
+let extractedText = '';
+let ll50Used = false, llPhoneUsed = false, llPubUsed = false;
+
+renderTeamGrid();
+
+function renderTeamGrid() {
+  const g = document.getElementById('teamGrid');
+  g.innerHTML = '';
+  const defaultNames = ['Equipo 1','Equipo 2','Equipo 3','Equipo 4','Equipo 5','Equipo 6'];
+  for (let i = 0; i < numTeams; i++) {
+    const prev = teams[i] || defaultNames[i];
+    g.innerHTML += `<div class="team-field"><div class="team-dot" style="background:${TEAM_COLORS[i]}"></div><input class="inp" type="text" placeholder="${defaultNames[i]}" value="${prev}" id="tn-${i}" oninput="checkReady()"></div>`;
+  }
+  checkReady();
+}
+
+function changeTeams(d) { numTeams = Math.max(1, Math.min(6, numTeams+d)); document.getElementById('teamCount').textContent = numTeams; renderTeamGrid(); }
+function togglePw(){const i=document.getElementById('apiKey');i.type=i.type==='password'?'text':'password';}
+function checkReady(){document.getElementById('btnGen').disabled=!(document.getElementById('apiKey').value.trim().length>5&&extractedText.length>50);}
+document.getElementById('apiKey').addEventListener('input',checkReady);
+(function(){const k=localStorage.getItem('gemini_api_key');if(k){document.getElementById('apiKey').value=k;document.getElementById('keySaved').style.display='flex';checkReady();}})();
+function forgetKey(){localStorage.removeItem('gemini_api_key');document.getElementById('apiKey').value='';document.getElementById('keySaved').style.display='none';checkReady();}
+
+// File handling
+const dz=document.getElementById('dropZone'), fi=document.getElementById('fileInput');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleFile(e.dataTransfer.files[0]);});
+fi.addEventListener('change',()=>handleFile(fi.files[0]));
+
+async function handleFile(file) {
+  if (!file) return;
+  try {
+    let text = '';
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (ext==='txt') { text=await file.text(); }
+    else if (ext==='docx') { const buf=await file.arrayBuffer(); const res=await mammoth.extractRawText({arrayBuffer:buf}); text=res.value; }
+    else if (ext==='pdf') {
+      const buf=await file.arrayBuffer(); const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+      for (let p=1;p<=pdf.numPages;p++) { const page=await pdf.getPage(p); const c=await page.getTextContent(); text+=c.items.map(i=>i.str).join(' ')+'\n'; }
+    } else { alert('Formato no admitido. Usa .txt, .docx o .pdf'); return; }
+    extractedText=text.trim();
+    document.getElementById('fileOk').classList.add('visible');
+    document.getElementById('fileName').textContent=file.name;
+    document.getElementById('fileSize').textContent=`${Math.round(file.size/1024)} KB`;
+    checkReady();
+  } catch(e) { alert('Error al leer el archivo: '+e.message); }
+}
+
+async function startGame() {
+  teams=[]; scores=[]; teamsDone=[];
+  for (let i=0;i<numTeams;i++) { teams.push(document.getElementById(`tn-${i}`).value.trim()||`Equipo ${i+1}`); scores.push(0); teamsDone.push(false); }
+  show('s-loading');
+
+  const apiKey=document.getElementById('apiKey').value.trim();
+  localStorage.setItem('gemini_api_key',apiKey);
+  const prompt=`Eres un creador de juegos educativos en español. A partir del siguiente texto, genera exactamente 15 preguntas de opción múltiple para "¿Quién quiere ser millonario?".
+Las preguntas deben tener dificultad progresiva: preguntas 1-5 muy fáciles, 6-10 moderadas, 11-15 difíciles.
+Devuelve SOLO un array JSON sin texto adicional:
+[{"pregunta":"texto","opciones":["opción A","opción B","opción C","opción D"],"correcta":0}]
+El campo "correcta" es el índice 0-3 de la opción correcta.
+
+TEXTO:
+${extractedText.slice(0,12000)}`;
+  try {
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,{method:'POST',headers: {'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.7}})});
+    const data=await res.json();
+    if(data.error) throw new Error(data.error.message);
+    questions=JSON.parse(data.candidates[0].content.parts[0].text);
+    goSelectTeam();
+  } catch(e) {
+    show('s-setup');
+    const err=document.getElementById('errMsg'); err.textContent='❌ Error: '+e.message; err.style.display='block';
+    setTimeout(()=>err.style.display='none',6000);
+  }
+}
+
+function goSelectTeam() {
+  const grid=document.getElementById('tsGrid');
+  grid.innerHTML=teams.map((t,i)=>{
+    const done=teamsDone[i];
+    return `<button class="ts-btn" onclick="selectTeam(${i})" ${done?'style="opacity:.4;cursor:not-allowed"':''} ${done?'disabled':''}>
+      <span style="color:${TEAM_COLORS[i]}">${done?'✓':''}</span> ${t} — ${scores[i]} pts
+    </button>`;
+  }).join('');
+  show('s-teamselect');
+}
+
+function selectTeam(i) {
+  activeTeam=i; curQ=0; ll50Used=false; llPhoneUsed=false; llPubUsed=false;
+  document.getElementById('activeTeamName').textContent=teams[i];
+  document.getElementById('ll50').disabled=false;
+  document.getElementById('llPhone').disabled=false;
+  document.getElementById('llPub').disabled=false;
+  buildLadder();
+  renderScoresBar();
+  showQuestion();
+  show('s-game');
+}
+
+function buildLadder() {
+  const el=document.getElementById('ladder');
+  el.innerHTML=[...PRIZES].reverse().map((p,i)=>{
+    const qi=14-i;
+    const isCur=qi===curQ;
+    const isReached=qi<curQ;
+    const isSafe=SAFE_HAVENS.includes(qi);
+    return `<div class="pl-item ${isCur?'current':''} ${isReached?'reached':''}" id="pl-${qi}">
+      <span class="pl-num">${qi+1}${isSafe?' 🔒':''}</span>
+      <span class="pl-prize">${p}</span>
+    </div>`;
+  }).join('');
+}
+
+function updateLadder() {
+  document.querySelectorAll('.pl-item').forEach((el,i)=>{
+    const qi=14-i;
+    el.className='pl-item'+(qi===curQ?' current':qi<curQ?' reached':'');
+  });
+}
+
+function showQuestion() {
+  if (curQ>=questions.length) { endGame(true); return; }
+  const q=questions[curQ];
+  document.getElementById('qNum').textContent=`PREGUNTA ${curQ+1} DE 15`;
+  document.getElementById('qText').textContent=q.pregunta;
+  const letters=['A','B','C','D'];
+  document.getElementById('opts').innerHTML=q.opciones.map((o,i)=>`
+    <button class="opt-btn" id="opt-${i}" onclick="selectAnswer(${i})">
+      <div class="opt-letter">${letters[i]}</div>
+      <span>${o}</span>
+    </button>`).join('');
+  updateLadder();
+  renderScoresBar();
+}
+
+function selectAnswer(chosen) {
+  const q=questions[curQ];
+  const correct=q.correcta;
+  // Disable all
+  document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
+  document.getElementById(`opt-${correct}`).classList.add('correct');
+  if (chosen!==correct) {
+    document.getElementById(`opt-${chosen}`).classList.add('wrong');
+    // Find safe haven
+    let safeIdx=0;
+    for (let s of SAFE_HAVENS) { if(s<curQ) safeIdx=s; }
+    setTimeout(()=>endGame(false, safeIdx), 1200);
+  } else {
+    setTimeout(()=>{
+      curQ++;
+      if(curQ>=15) { endGame(true); } else { showQuestion(); }
+    }, 1200);
+  }
+}
+
+function endGame(won, safeIdx=0) {
+  const prize=won?PRIZES[14]:safeIdx>0?PRIZES[safeIdx]:'0 €';
+  const pts=won?15:safeIdx>0?safeIdx+1:0;
+  scores[activeTeam]+=pts;
+  teamsDone[activeTeam]=true;
+  const overlay=document.getElementById('resultOverlay');
+  document.getElementById('resIcon').textContent=won?'🏆':'😢';
+  document.getElementById('resMsg').textContent=won?'¡LO CONSIGUIERON!':'¡Se equivocaron!';
+  document.getElementById('resSub').textContent=won?`${teams[activeTeam]} ha llegado al millón`:`${teams[activeTeam]} se queda con el salvavidas`;
+  document.getElementById('resPrize').textContent=`💰 ${prize}`;
+  const allDone=teamsDone.every(d=>d);
+  overlay.querySelector('.result-btns').innerHTML=
+    (!allDone?`<button class="rbtn rbtn-gold" onclick="nextTeam()">Siguiente equipo</button>`:'')
+    +`<button class="rbtn rbtn-ghost" onclick="showFinal()">Ver resultados finales</button>`;
+  overlay.classList.add('visible');
+}
+
+function nextTeam() { document.getElementById('resultOverlay').classList.remove('visible'); goSelectTeam(); }
+
+function renderScoresBar() {
+  document.getElementById('scoresBar').innerHTML=teams.map((t,i)=>`
+    <div class="ts-score"><div class="ts-dot" style="background:${TEAM_COLORS[i]}"></div><span class="ts-name-s">${t}:</span><span class="ts-pts-s">${scores[i]}</span></div>`).join('');
+}
+
+// Lifelines
+function use5050() {
+  if(ll50Used) return; ll50Used=true; document.getElementById('ll50').disabled=true;
+  const q=questions[curQ]; const correct=q.correcta;
+  let wrong=[]; for(let i=0;i<4;i++){if(i!==correct)wrong.push(i);}
+  wrong=wrong.sort(()=>Math.random()-.5).slice(0,2);
+  wrong.forEach(i=>{ const b=document.getElementById(`opt-${i}`); b.classList.add('hidden'); b.disabled=true; });
+}
+function usePhone() {
+  if(llPhoneUsed) return; llPhoneUsed=true; document.getElementById('llPhone').disabled=true;
+  const q=questions[curQ]; const letters=['A','B','C','D'];
+  alert(`📞 Un experto dice:\n"Creo que la respuesta es la ${letters[q.correcta]} con un 85% de seguridad."`);
+}
+function useAudience() {
+  if(llPubUsed) return; llPubUsed=true; document.getElementById('llPub').disabled=true;
+  const q=questions[curQ]; const letters=['A','B','C','D'];
+  const pcts=[5,5,5,5]; pcts[q.correcta]=70; let rem=15;
+  for(let i=0;i<4;i++){if(i!==q.correcta){const r=Math.min(rem,Math.floor(Math.random()*10));pcts[i]+=r;rem-=r;}}
+  pcts[q.correcta]+=rem;
+  const bars=letters.map((l,i)=>`${l}: ${'█'.repeat(Math.round(pcts[i]/5))} ${pcts[i]}%`).join('\n');
+  alert('👥 El público vota:\n\n'+bars);
+}
+
+function showFinal() {
+  document.getElementById('resultOverlay').classList.remove('visible');
+  const ranked=teams.map((t,i)=>({name:t,pts:scores[i],color:TEAM_COLORS[i]})).sort((a,b)=>b.pts-a.pts);
+  const podOrder=[1,0,2], podClasses=['pod-2','pod-1','pod-3'], podEmojis=['🥇','🥈','🥉'];
+  document.getElementById('podium').innerHTML=podOrder.map((rank,vi)=>{
+    const t=ranked[rank]; if(!t) return '';
+    return `<div class="pod ${podClasses[vi]}"><div class="pod-name">${t.name}</div><div class="pod-pts">${t.pts} pts</div><div class="pod-block">${podEmojis[rank]}</div></div>`;
+  }).join('');
+  document.getElementById('allScores').innerHTML=ranked.map((t,i)=>`
+    <div class="asr"><span class="asr-rank">${i+1}</span><div class="asr-dot" style="background:${t.color}"></div><span class="asr-name">${t.name}</span><span class="asr-pts">${t.pts} pts</span></div>`).join('');
+  show('s-final');
+}
+
+function resetGame() { scores=teams.map(()=>0); teamsDone=teams.map(()=>false); show('s-setup'); }
+
+function show(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+</script>
+</body>
+</html>
